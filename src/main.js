@@ -17,5 +17,4 @@ app.use(router);
 app.mount('#app');
 
 // Log de inicio
-console.log('✅ Aplicación TechStore Pro iniciada correctamente');
-
+console.log('✅ Aplicación GamerHub Pro iniciada correctamente');

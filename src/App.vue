@@ -19,20 +19,28 @@ export default {
 @import 'bootstrap/dist/css/bootstrap.min.css';
 @import 'bootstrap-icons/font/bootstrap-icons.css';
 
-/* Variables globales - Tema Gaming */
+/* Variables globales - Tema Claro Minimalista */
 :root {
-  --color-black: #000000;
-  --color-dark: #0a0a0a;
-  --color-darker: #1a1a1a;
-  --color-gray: #333;
-  --color-light-gray: #666;
-  --color-text: #999;
-  --color-white: #fff;
-  --color-primary: #00ff88;
-  --color-primary-hover: #00e67a;
-  --color-warning: #ffc107;
-  --color-danger: #dc3545;
-  --color-info: #2196f3;
+  --color-bg-primary: #ffffff;
+  --color-bg-secondary: #f8f9fa;
+  --color-bg-tertiary: #f1f3f5;
+  --color-border: #e9ecef;
+  --color-border-hover: #dee2e6;
+  --color-text-primary: #212529;
+  --color-text-secondary: #495057;
+  --color-text-tertiary: #6c757d;
+  --color-text-muted: #adb5bd;
+  --color-primary: #6366f1;
+  --color-primary-hover: #4f46e5;
+  --color-primary-light: #eef2ff;
+  --color-warning: #f59e0b;
+  --color-danger: #ef4444;
+  --color-info: #3b82f6;
+  --color-success: #10b981;
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+  --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
 }
 
 /* Reset global */
@@ -49,8 +57,8 @@ html {
 
 body {
   font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text', 'Helvetica Neue', Arial, sans-serif;
-  background: var(--color-black);
-  color: var(--color-white);
+  background: var(--color-bg-primary);
+  color: var(--color-text-primary);
   line-height: 1.6;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -68,22 +76,22 @@ body {
 }
 
 ::-webkit-scrollbar-track {
-  background: var(--color-black);
+  background: var(--color-bg-secondary);
 }
 
 ::-webkit-scrollbar-thumb {
-  background: var(--color-darker);
+  background: var(--color-border-hover);
   border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: var(--color-gray);
+  background: var(--color-text-tertiary);
 }
 
 /* Selección de texto */
 ::selection {
   background: var(--color-primary);
-  color: var(--color-black);
+  color: #ffffff;
 }
 
 /* Tipografía */
@@ -113,7 +121,7 @@ select {
 
 input::placeholder,
 textarea::placeholder {
-  color: var(--color-text);
+  color: var(--color-text-tertiary);
 }
 
 /* Buttons reset */

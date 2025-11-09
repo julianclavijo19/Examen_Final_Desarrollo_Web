@@ -8,6 +8,7 @@ import HomeView from '../views/HomeView.vue';
 import ProductView from '../views/ProductView.vue';
 import CategoryView from '../views/CategoryView.vue';
 import ClientView from '../views/ClientView.vue';
+import StatisticsView from '../views/StatisticsView.vue';
 
 /**
  * Configuración de rutas de la aplicación
@@ -70,6 +71,15 @@ const routes = [
         meta: {
           requiresAuth: true,
           title: 'Clientes'
+        }
+      },
+      {
+        path: 'estadisticas',
+        name: 'Statistics',
+        component: StatisticsView,
+        meta: {
+          requiresAuth: true,
+          title: 'Estadísticas'
         }
       }
     ]
