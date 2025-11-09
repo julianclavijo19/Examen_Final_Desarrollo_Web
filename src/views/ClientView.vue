@@ -1,120 +1,118 @@
 <template>
-  <div class="client-view p-4">
-    <div class="page-header mb-4">
-      <h2 class="fw-bold">
-        <i class="bi bi-people me-2"></i>
-        Gestión de Clientes
-      </h2>
-      <p class="text-muted">Administra la base de datos de clientes</p>
+  <div class="clients-view">
+    <div class="page-header">
+      <h1>Clientes</h1>
+      <p>Gestiona tu base de datos de clientes</p>
     </div>
 
-    <!-- Toolbar -->
-    <div class="toolbar mb-4">
-      <div class="row align-items-center">
-        <div class="col-md-8 mb-3 mb-md-0">
-          <div class="input-group">
-            <span class="input-group-text">
-              <i class="bi bi-search"></i>
-            </span>
-            <input
-              type="text"
-              class="form-control"
-              placeholder="Buscar clientes..."
-              v-model="searchQuery"
-            >
-          </div>
-        </div>
-        <div class="col-md-4 text-end">
-          <button class="btn btn-primary">
-            <i class="bi bi-person-plus me-2"></i>
-            Nuevo Cliente
-          </button>
-        </div>
-      </div>
-    </div>
-
-    <!-- Tabla de clientes -->
-    <div class="card shadow-sm">
-      <div class="card-body">
-        <div class="table-responsive">
-          <table class="table table-hover align-middle">
-            <thead class="table-primary">
-              <tr>
-                <th>ID</th>
-                <th>Nombre</th>
-                <th>Email</th>
-                <th>Teléfono</th>
-                <th>Ciudad</th>
-                <th>Fecha Registro</th>
-                <th>Acciones</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-for="client in filteredClients" :key="client.id">
-                <td><strong>#{{ client.id }}</strong></td>
-                <td>
-                  <div class="d-flex align-items-center">
-                    <div class="avatar me-3">
-                      {{ client.name.charAt(0) }}
-                    </div>
-                    <div>
-                      <strong>{{ client.name }}</strong>
-                      <small class="d-block text-muted">{{ client.username }}</small>
-                    </div>
-                  </div>
-                </td>
-                <td>{{ client.email }}</td>
-                <td>{{ client.phone }}</td>
-                <td>{{ client.address.city }}</td>
-                <td>{{ client.registrationDate }}</td>
-                <td>
-                  <div class="btn-group btn-group-sm">
-                    <button class="btn btn-outline-primary" title="Ver">
-                      <i class="bi bi-eye"></i>
-                    </button>
-                    <button class="btn btn-outline-success" title="Editar">
-                      <i class="bi bi-pencil"></i>
-                    </button>
-                    <button class="btn btn-outline-danger" title="Eliminar">
-                      <i class="bi bi-trash"></i>
-                    </button>
-                  </div>
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-
-    <!-- Estadísticas -->
-    <div class="row mt-4 g-4">
-      <div class="col-md-3">
-        <div class="stat-card bg-primary text-white">
+    <!-- Statistics Cards -->
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-icon stat-total">
           <i class="bi bi-people"></i>
+        </div>
+        <div class="stat-content">
           <h3>{{ clients.length }}</h3>
           <p>Total Clientes</p>
         </div>
       </div>
-      <div class="col-md-3">
-        <div class="stat-card bg-success text-white">
+      <div class="stat-card">
+        <div class="stat-icon stat-active">
           <i class="bi bi-check-circle"></i>
-          <h3>{{ activeClients }}</h3>
+        </div>
+        <div class="stat-content">
+          <h3>{{ stats.activeClients }}</h3>
           <p>Clientes Activos</p>
         </div>
       </div>
-      <div class="col-md-3">
-        <div class="stat-card bg-warning text-white">
+      <div class="stat-card">
+        <div class="stat-icon stat-vip">
           <i class="bi bi-star"></i>
-          <h3>{{ vipClients }}</h3>
+        </div>
+        <div class="stat-content">
+          <h3>{{ stats.vipClients }}</h3>
           <p>Clientes VIP</p>
         </div>
       </div>
-      <div class="col-md-3">
-        <div class="stat-card bg-info text-white">
+      <div class="stat-card">
+        <div class="stat-icon stat-new">
           <i class="bi bi-calendar-plus"></i>
-          <h3>{{ newClients }}</h3>
+        </div>
+        <div class="stat-content">
+          <h3>{{ stats.newClients }}</h3>
           <p>Nuevos este mes</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Toolbar -->
+    <div class="toolbar">
+      <div class="search-box">
+        <i class="bi bi-search"></i>
+        <input
+          type="text"
+          placeholder="Buscar clientes por nombre, email, teléfono o ciudad..."
+          v-model="searchQuery"
+        >
+      </div>
+      <button class="btn-primary">
+        <i class="bi bi-person-plus"></i>
+        Nuevo Cliente
+      </button>
+    </div>
+
+    <!-- Clients Table -->
+    <div class="table-container">
+      <div class="table-wrapper">
+        <table class="clients-table">
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Cliente</th>
+              <th>Email</th>
+              <th>Teléfono</th>
+              <th>Ciudad</th>
+              <th>Fecha Registro</th>
+              <th>Acciones</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="client in filteredClients" :key="client.id">
+              <td class="client-id">#{{ client.id }}</td>
+              <td>
+                <div class="client-info">
+                  <div class="client-avatar">
+                    {{ client.name.charAt(0) }}
+                  </div>
+                  <div class="client-details">
+                    <strong>{{ client.name }}</strong>
+                    <span>{{ client.username }}</span>
+                  </div>
+                </div>
+              </td>
+              <td>{{ client.email }}</td>
+              <td>{{ client.phone }}</td>
+              <td>{{ client.address.city }}</td>
+              <td>{{ formatDate(client.registrationDate) }}</td>
+              <td>
+                <div class="action-buttons">
+                  <button class="btn-icon btn-view" title="Ver">
+                    <i class="bi bi-eye"></i>
+                  </button>
+                  <button class="btn-icon btn-edit" title="Editar">
+                    <i class="bi bi-pencil"></i>
+                  </button>
+                  <button class="btn-icon btn-delete" title="Eliminar">
+                    <i class="bi bi-trash"></i>
+                  </button>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+        <div v-if="filteredClients.length === 0" class="empty-state">
+          <i class="bi bi-inbox"></i>
+          <p>No se encontraron clientes</p>
         </div>
       </div>
     </div>
@@ -122,61 +120,22 @@
 </template>
 
 <script>
+import { clientService } from '../services/api';
+import { formatDate } from '../utils/formatters';
+
 export default {
   name: 'ClientView',
   data() {
     return {
       searchQuery: '',
-      clients: [
-        {
-          id: 1,
-          name: 'Carlos Rodríguez',
-          username: 'crodriguez',
-          email: 'carlos@example.com',
-          phone: '+57 300 123 4567',
-          address: { city: 'Bogotá' },
-          registrationDate: '2024-01-15'
-        },
-        {
-          id: 2,
-          name: 'María García',
-          username: 'mgarcia',
-          email: 'maria@example.com',
-          phone: '+57 310 234 5678',
-          address: { city: 'Medellín' },
-          registrationDate: '2024-02-20'
-        },
-        {
-          id: 3,
-          name: 'Juan Pérez',
-          username: 'jperez',
-          email: 'juan@example.com',
-          phone: '+57 320 345 6789',
-          address: { city: 'Cali' },
-          registrationDate: '2024-03-10'
-        },
-        {
-          id: 4,
-          name: 'Ana Martínez',
-          username: 'amartinez',
-          email: 'ana@example.com',
-          phone: '+57 315 456 7890',
-          address: { city: 'Barranquilla' },
-          registrationDate: '2024-04-05'
-        },
-        {
-          id: 5,
-          name: 'Luis Hernández',
-          username: 'lhernandez',
-          email: 'luis@example.com',
-          phone: '+57 305 567 8901',
-          address: { city: 'Cartagena' },
-          registrationDate: '2024-05-12'
-        }
-      ],
-      activeClients: 5,
-      vipClients: 2,
-      newClients: 3
+      clients: [],
+      loading: false,
+      error: null,
+      stats: {
+        activeClients: 0,
+        vipClients: 0,
+        newClients: 0
+      }
     };
   },
   computed: {
@@ -188,86 +147,410 @@ export default {
         client.name.toLowerCase().includes(query) ||
         client.email.toLowerCase().includes(query) ||
         client.phone.includes(query) ||
-        client.address.city.toLowerCase().includes(query)
+        client.address.city.toLowerCase().includes(query) ||
+        client.username.toLowerCase().includes(query)
       );
+    }
+  },
+  async mounted() {
+    await this.loadClients();
+    await this.loadStats();
+  },
+  methods: {
+    formatDate,
+    async loadClients() {
+      this.loading = true;
+      this.error = null;
+      try {
+        this.clients = await clientService.getAllClients();
+      } catch (err) {
+        this.error = 'Error al cargar clientes';
+        console.error(err);
+      } finally {
+        this.loading = false;
+      }
+    },
+    async loadStats() {
+      try {
+        this.stats = await clientService.getClientStats();
+      } catch (err) {
+        console.error('Error al cargar estadísticas:', err);
+      }
     }
   }
 }
 </script>
 
 <style scoped>
-.client-view {
-  animation: fadeIn 0.5s ease;
-}
-
-@keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
+.clients-view {
+  padding: 2rem;
+  max-width: 1600px;
+  margin: 0 auto;
+  animation: fadeIn 0.4s ease-out;
+  background: #f8f9fa;
 }
 
 .page-header {
-  background: linear-gradient(135deg, #ffc107 0%, #ff6f00 100%);
-  color: white;
-  padding: 25px;
-  border-radius: 10px;
-  box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+  margin-bottom: 2rem;
 }
 
-.toolbar {
-  background: white;
-  padding: 20px;
-  border-radius: 10px;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+.page-header h1 {
+  font-size: 2.5rem;
+  font-weight: 700;
+  color: #212529;
+  margin: 0 0 0.5rem 0;
+  letter-spacing: -0.03em;
 }
 
-.card {
-  border: none;
-  border-radius: 10px;
+.page-header p {
+  color: #6c757d;
+  font-size: 1.125rem;
+  margin: 0;
 }
 
-.avatar {
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-weight: bold;
-  font-size: 1.2rem;
-}
-
-.table {
-  margin-bottom: 0;
-}
-
-.table thead {
-  position: sticky;
-  top: 0;
-  z-index: 10;
+/* Statistics Grid */
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 1.5rem;
+  margin-bottom: 2rem;
 }
 
 .stat-card {
-  padding: 25px;
+  background: #ffffff;
+  border: 1px solid #e9ecef;
+  border-radius: 12px;
+  padding: 1.5rem;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  transition: all 0.3s ease;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+
+.stat-card:hover {
+  border-color: #6366f1;
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(99, 102, 241, 0.1);
+}
+
+.stat-icon {
+  width: 56px;
+  height: 56px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+  flex-shrink: 0;
+}
+
+.stat-icon.stat-total {
+  background: #eef2ff;
+  border: 1px solid #c7d2fe;
+  color: #6366f1;
+}
+
+.stat-icon.stat-active {
+  background: #d1fae5;
+  border: 1px solid #a7f3d0;
+  color: #10b981;
+}
+
+.stat-icon.stat-vip {
+  background: #fef3c7;
+  border: 1px solid #fde68a;
+  color: #f59e0b;
+}
+
+.stat-icon.stat-new {
+  background: #dbeafe;
+  border: 1px solid #bfdbfe;
+  color: #3b82f6;
+}
+
+.stat-content h3 {
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: #212529;
+  margin: 0 0 0.25rem 0;
+}
+
+.stat-content p {
+  font-size: 0.875rem;
+  color: #6c757d;
+  margin: 0;
+}
+
+/* Toolbar */
+.toolbar {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+  flex-wrap: wrap;
+}
+
+.search-box {
+  flex: 1;
+  min-width: 300px;
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.search-box i {
+  position: absolute;
+  left: 1rem;
+  color: #6c757d;
+  font-size: 1.125rem;
+}
+
+.search-box input {
+  width: 100%;
+  padding: 0.75rem 1rem 0.75rem 2.75rem;
+  border: 1px solid #e9ecef;
   border-radius: 10px;
+  font-size: 0.9375rem;
+  background: #ffffff;
+  color: #212529;
+  transition: all 0.3s ease;
+}
+
+.search-box input:focus {
+  outline: none;
+  border-color: #6366f1;
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+}
+
+.search-box input::placeholder {
+  color: #adb5bd;
+}
+
+.btn-primary {
+  padding: 0.75rem 1.5rem;
+  background: #6366f1;
+  color: #ffffff;
+  border: none;
+  border-radius: 10px;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  transition: all 0.3s ease;
+  white-space: nowrap;
+}
+
+.btn-primary:hover {
+  background: #4f46e5;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+}
+
+/* Table Container */
+.table-container {
+  background: #ffffff;
+  border: 1px solid #e9ecef;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+
+.table-wrapper {
+  overflow-x: auto;
+}
+
+.clients-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.clients-table thead {
+  background: #f8f9fa;
+  border-bottom: 1px solid #e9ecef;
+}
+
+.clients-table th {
+  padding: 1rem;
+  text-align: left;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #495057;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.clients-table tbody tr {
+  border-bottom: 1px solid #f1f3f5;
+  transition: all 0.2s ease;
+}
+
+.clients-table tbody tr:hover {
+  background: #f8f9fa;
+}
+
+.clients-table tbody tr:last-child {
+  border-bottom: none;
+}
+
+.clients-table td {
+  padding: 1rem;
+  font-size: 0.9375rem;
+  color: #212529;
+}
+
+.client-id {
+  font-weight: 600;
+  color: #6366f1;
+}
+
+.client-info {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.client-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  font-size: 1rem;
+  flex-shrink: 0;
+}
+
+.client-details {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.client-details strong {
+  color: #212529;
+  font-weight: 600;
+}
+
+.client-details span {
+  font-size: 0.8125rem;
+  color: #6c757d;
+}
+
+.action-buttons {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.btn-icon {
+  width: 32px;
+  height: 32px;
+  border: 1px solid #e9ecef;
+  border-radius: 8px;
+  background: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  color: #6c757d;
+}
+
+.btn-icon:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.btn-view:hover {
+  border-color: #3b82f6;
+  color: #3b82f6;
+  background: #dbeafe;
+}
+
+.btn-edit:hover {
+  border-color: #10b981;
+  color: #10b981;
+  background: #d1fae5;
+}
+
+.btn-delete:hover {
+  border-color: #ef4444;
+  color: #ef4444;
+  background: #fee2e2;
+}
+
+.empty-state {
+  padding: 4rem 2rem;
   text-align: center;
-  box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+  color: #6c757d;
 }
 
-.stat-card i {
-  font-size: 2.5rem;
-  margin-bottom: 10px;
+.empty-state i {
+  font-size: 3rem;
+  color: #adb5bd;
+  margin-bottom: 1rem;
 }
 
-.stat-card h3 {
-  font-size: 2rem;
-  font-weight: bold;
-  margin-bottom: 5px;
+.empty-state p {
+  margin: 0;
+  font-size: 1rem;
 }
 
-.stat-card p {
-  margin-bottom: 0;
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Responsive */
+@media (max-width: 1024px) {
+  .stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 768px) {
+  .clients-view {
+    padding: 1.5rem;
+  }
+
+  .page-header h1 {
+    font-size: 2rem;
+  }
+
+  .stats-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .toolbar {
+    flex-direction: column;
+  }
+
+  .search-box {
+    min-width: 100%;
+  }
+
+  .btn-primary {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .clients-table {
+    font-size: 0.875rem;
+  }
+
+  .clients-table th,
+  .clients-table td {
+    padding: 0.75rem 0.5rem;
+  }
 }
 </style>
-

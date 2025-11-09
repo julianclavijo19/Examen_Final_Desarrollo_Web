@@ -123,7 +123,7 @@ export default {
 <style scoped>
 .login-minimal {
   min-height: 100vh;
-  background: #000000;
+  background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -139,7 +139,7 @@ export default {
   left: 50%;
   width: 500px;
   height: 500px;
-  background: radial-gradient(circle, rgba(0, 255, 136, 0.1) 0%, transparent 70%);
+  background: radial-gradient(circle, rgba(99, 102, 241, 0.08) 0%, transparent 70%);
   transform: translate(-50%, -50%);
   animation: pulse 4s ease-in-out infinite;
 }
@@ -161,6 +161,11 @@ export default {
   position: relative;
   z-index: 1;
   animation: slideInLeft 0.6s ease-out;
+  background: #ffffff;
+  border-radius: 16px;
+  padding: 2.5rem;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+  border: 1px solid #e9ecef;
 }
 
 .login-header {
@@ -170,7 +175,7 @@ export default {
 
 .login-header i {
   font-size: 3rem;
-  color: #00ff88;
+  color: #6366f1;
   margin-bottom: 1rem;
   animation: float 3s ease-in-out infinite;
   display: inline-block;
@@ -186,7 +191,7 @@ export default {
 }
 
 .login-header h1 {
-  color: #fff;
+  color: #212529;
   font-size: 1.75rem;
   font-weight: 700;
   margin: 0 0 0.5rem 0;
@@ -194,21 +199,21 @@ export default {
 }
 
 .login-header p {
-  color: #666;
+  color: #6c757d;
   font-size: 0.9375rem;
   margin: 0;
 }
 
 .alert-error {
-  background: rgba(220, 53, 69, 0.1);
-  border: 1px solid #dc3545;
+  background: #fee2e2;
+  border: 1px solid #ef4444;
   border-radius: 8px;
   padding: 0.75rem 1rem;
   margin-bottom: 1.5rem;
   display: flex;
   align-items: center;
   gap: 0.75rem;
-  color: #ff6b6b;
+  color: #ef4444;
   font-size: 0.875rem;
 }
 
@@ -217,15 +222,15 @@ export default {
 }
 
 .info-badge {
-  background: rgba(0, 255, 136, 0.05);
-  border: 1px solid rgba(0, 255, 136, 0.2);
+  background: #eef2ff;
+  border: 1px solid #c7d2fe;
   border-radius: 8px;
   padding: 0.75rem 1rem;
   margin-bottom: 1.5rem;
   display: flex;
   align-items: center;
   gap: 0.75rem;
-  color: #00ff88;
+  color: #6366f1;
   font-size: 0.875rem;
 }
 
@@ -246,29 +251,29 @@ export default {
 }
 
 .form-group label {
-  color: #999;
+  color: #495057;
   font-size: 0.875rem;
   font-weight: 500;
 }
 
 .form-group input {
-  background: #0a0a0a;
-  border: 1px solid #1a1a1a;
+  background: #ffffff;
+  border: 1px solid #e9ecef;
   border-radius: 8px;
   padding: 0.875rem 1rem;
-  color: #fff;
+  color: #212529;
   font-size: 0.9375rem;
   transition: all 0.2s;
 }
 
 .form-group input:focus {
   outline: none;
-  border-color: #00ff88;
-  background: #000;
+  border-color: #6366f1;
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
 }
 
 .form-group input::placeholder {
-  color: #555;
+  color: #adb5bd;
 }
 
 .password-input {
@@ -287,19 +292,19 @@ export default {
   right: 0.75rem;
   background: transparent;
   border: none;
-  color: #666;
+  color: #6c757d;
   cursor: pointer;
   padding: 0.5rem;
   transition: color 0.2s;
 }
 
 .toggle-password:hover {
-  color: #00ff88;
+  color: #6366f1;
 }
 
 .btn-login {
-  background: linear-gradient(135deg, #00ff88 0%, #00e67a 100%);
-  color: #000;
+  background: #6366f1;
+  color: #ffffff;
   border: none;
   border-radius: 8px;
   padding: 0.875rem;
@@ -324,8 +329,9 @@ export default {
 }
 
 .btn-login:hover:not(:disabled) {
+  background: #4f46e5;
   transform: translateY(-2px);
-  box-shadow: 0 8px 16px rgba(0, 255, 136, 0.3);
+  box-shadow: 0 8px 16px rgba(99, 102, 241, 0.3);
 }
 
 .btn-login:hover::before {
@@ -341,8 +347,8 @@ export default {
   display: inline-block;
   width: 14px;
   height: 14px;
-  border: 2px solid rgba(0,0,0,0.2);
-  border-top-color: #000;
+  border: 2px solid rgba(255,255,255,0.3);
+  border-top-color: #ffffff;
   border-radius: 50%;
   animation: spin 0.6s linear infinite;
   margin-right: 0.5rem;
@@ -359,12 +365,13 @@ export default {
   align-items: center;
   justify-content: center;
   gap: 0.5rem;
-  color: #555;
+  color: #6c757d;
   font-size: 0.8125rem;
 }
 
 .login-footer i {
   font-size: 1rem;
+  color: #6366f1;
 }
 
 @media (max-width: 480px) {

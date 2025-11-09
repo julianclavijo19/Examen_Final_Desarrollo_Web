@@ -151,6 +151,7 @@
 
 <script>
 import authService from '../services/authService';
+import { getGreeting, getCurrentTime } from '../utils/helpers';
 
 export default {
   name: 'HomeView',
@@ -206,10 +207,7 @@ export default {
   },
   computed: {
     greeting() {
-      const hour = new Date().getHours();
-      if (hour < 12) return 'Buenos días';
-      if (hour < 19) return 'Buenas tardes';
-      return 'Buenas noches';
+      return getGreeting();
     }
   },
   mounted() {
@@ -219,11 +217,7 @@ export default {
   },
   methods: {
     updateTime() {
-      const now = new Date();
-      this.currentTime = now.toLocaleTimeString('es-ES', { 
-        hour: '2-digit', 
-        minute: '2-digit'
-      });
+      this.currentTime = getCurrentTime();
     }
   }
 }
@@ -239,24 +233,13 @@ export default {
 
 /* Hero Section */
 .hero-section {
-  background: linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 100%);
-  border: 1px solid #00ff88;
+  background: #ffffff;
+  border: 1px solid #e9ecef;
   border-radius: 16px;
   padding: 2rem;
   margin-bottom: 2rem;
   position: relative;
-  overflow: hidden;
-}
-
-.hero-section::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  right: 0;
-  width: 300px;
-  height: 300px;
-  background: radial-gradient(circle, rgba(0, 255, 136, 0.1) 0%, transparent 70%);
-  pointer-events: none;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
 }
 
 .hero-content {
@@ -271,20 +254,18 @@ export default {
   font-size: 2.5rem;
   font-weight: 700;
   margin: 0 0 0.5rem 0;
-  background: linear-gradient(135deg, #fff 0%, #00ff88 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
+  color: #212529;
   letter-spacing: -0.03em;
 }
 
 .hero-subtitle {
   font-size: 1.125rem;
-  color: #666;
+  color: #6c757d;
   margin: 0;
 }
 
 .user-highlight {
-  color: #00ff88;
+  color: #6366f1;
   font-weight: 600;
 }
 
@@ -294,36 +275,50 @@ export default {
   gap: 0.75rem;
   font-size: 2rem;
   font-weight: 700;
-  color: #00ff88;
+  color: #6366f1;
   font-variant-numeric: tabular-nums;
 }
 
 .time-display i {
   font-size: 1.5rem;
+  color: #6366f1;
 }
 
 /* Stats Container - Horizontal */
 .stats-container {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  grid-template-columns: repeat(4, 1fr);
   gap: 1.5rem;
   margin-bottom: 2rem;
 }
 
+@media (max-width: 1200px) {
+  .stats-container {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 768px) {
+  .stats-container {
+    grid-template-columns: 1fr;
+  }
+}
+
 .stat-card-gaming {
-  background: #0a0a0a;
-  border: 1px solid #1a1a1a;
+  background: #ffffff;
+  border: 1px solid #e9ecef;
   border-radius: 12px;
   padding: 1.5rem;
   transition: all 0.3s ease;
   animation: scaleIn 0.4s ease-out backwards;
   cursor: pointer;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
 }
 
 .stat-card-gaming:hover {
-  border-color: #00ff88;
+  border-color: #6366f1;
   transform: translateY(-4px);
-  box-shadow: 0 8px 24px rgba(0, 255, 136, 0.1);
+  box-shadow: 0 12px 32px rgba(99, 102, 241, 0.15);
 }
 
 .stat-header {
@@ -344,23 +339,27 @@ export default {
 }
 
 .stat-icon.products {
-  background: linear-gradient(135deg, rgba(0, 255, 136, 0.2) 0%, rgba(0, 255, 136, 0.05) 100%);
-  color: #00ff88;
+  background: #eef2ff;
+  border: 1px solid #c7d2fe;
+  color: #6366f1;
 }
 
 .stat-icon.categories {
-  background: linear-gradient(135deg, rgba(255, 193, 7, 0.2) 0%, rgba(255, 193, 7, 0.05) 100%);
-  color: #ffc107;
+  background: #fef3c7;
+  border: 1px solid #fde68a;
+  color: #f59e0b;
 }
 
 .stat-icon.clients {
-  background: linear-gradient(135deg, rgba(33, 150, 243, 0.2) 0%, rgba(33, 150, 243, 0.05) 100%);
-  color: #2196f3;
+  background: #dbeafe;
+  border: 1px solid #bfdbfe;
+  color: #3b82f6;
 }
 
 .stat-icon.revenue {
-  background: linear-gradient(135deg, rgba(156, 39, 176, 0.2) 0%, rgba(156, 39, 176, 0.05) 100%);
-  color: #9c27b0;
+  background: #f3e8ff;
+  border: 1px solid #e9d5ff;
+  color: #a855f7;
 }
 
 .stat-trend {
@@ -374,56 +373,59 @@ export default {
 }
 
 .stat-trend.up {
-  background: rgba(0, 255, 136, 0.1);
-  color: #00ff88;
+  background: #d1fae5;
+  color: #10b981;
 }
 
 .stat-value {
   font-size: 2rem;
   font-weight: 700;
-  color: #fff;
+  color: #212529;
   margin: 0 0 0.25rem 0;
   font-variant-numeric: tabular-nums;
 }
 
 .stat-label {
   font-size: 0.875rem;
-  color: #666;
+  color: #6c757d;
   margin: 0;
 }
 
 /* Content Grid */
 .content-grid-gaming {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(380px, 1fr));
+  grid-template-columns: repeat(3, 1fr);
   gap: 1.5rem;
 }
 
 .card-gaming {
-  background: #0a0a0a;
-  border: 1px solid #1a1a1a;
+  background: #ffffff;
+  border: 1px solid #e9ecef;
   border-radius: 12px;
   overflow: hidden;
   transition: all 0.3s ease;
   animation: slideInLeft 0.5s ease-out;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
 }
 
 .card-gaming:hover {
-  border-color: #333;
+  border-color: #6366f1;
+  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.1);
 }
 
 .card-header-gaming {
   padding: 1.5rem;
-  border-bottom: 1px solid #1a1a1a;
+  border-bottom: 1px solid #e9ecef;
   display: flex;
   justify-content: space-between;
   align-items: center;
+  background: #f8f9fa;
 }
 
 .card-header-gaming h2 {
   font-size: 1.125rem;
   font-weight: 600;
-  color: #fff;
+  color: #212529;
   margin: 0;
   display: flex;
   align-items: center;
@@ -431,7 +433,7 @@ export default {
 }
 
 .card-header-gaming i {
-  color: #00ff88;
+  color: #6366f1;
 }
 
 .status-indicator {
@@ -439,14 +441,14 @@ export default {
   align-items: center;
   gap: 0.5rem;
   font-size: 0.875rem;
-  color: #00ff88;
+  color: #10b981;
   font-weight: 600;
 }
 
 .status-dot {
   width: 8px;
   height: 8px;
-  background: #00ff88;
+  background: #10b981;
   border-radius: 50%;
   animation: pulse 2s ease-in-out infinite;
 }
@@ -464,17 +466,18 @@ export default {
   align-items: center;
   gap: 1rem;
   padding: 1rem;
-  background: #000;
-  border: 1px solid #1a1a1a;
+  background: #f8f9fa;
+  border: 1px solid #e9ecef;
   border-radius: 10px;
   text-decoration: none;
   transition: all 0.3s ease;
 }
 
 .action-item:hover {
-  border-color: #00ff88;
+  border-color: #6366f1;
   transform: translateX(4px);
-  box-shadow: 0 4px 12px rgba(0, 255, 136, 0.1);
+  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.1);
+  background: #ffffff;
 }
 
 .action-icon {
@@ -489,18 +492,21 @@ export default {
 }
 
 .action-icon.products {
-  background: rgba(0, 255, 136, 0.1);
-  color: #00ff88;
+  background: #eef2ff;
+  border: 1px solid #c7d2fe;
+  color: #6366f1;
 }
 
 .action-icon.categories {
-  background: rgba(255, 193, 7, 0.1);
-  color: #ffc107;
+  background: #fef3c7;
+  border: 1px solid #fde68a;
+  color: #f59e0b;
 }
 
 .action-icon.clients {
-  background: rgba(33, 150, 243, 0.1);
-  color: #2196f3;
+  background: #dbeafe;
+  border: 1px solid #bfdbfe;
+  color: #3b82f6;
 }
 
 .action-info {
@@ -510,24 +516,24 @@ export default {
 .action-info h4 {
   font-size: 0.9375rem;
   font-weight: 600;
-  color: #fff;
+  color: #212529;
   margin: 0 0 0.25rem 0;
 }
 
 .action-info p {
   font-size: 0.8125rem;
-  color: #666;
+  color: #6c757d;
   margin: 0;
 }
 
 .action-arrow {
-  color: #333;
+  color: #adb5bd;
   font-size: 1.25rem;
   transition: all 0.3s ease;
 }
 
 .action-item:hover .action-arrow {
-  color: #00ff88;
+  color: #6366f1;
   transform: translateX(4px);
 }
 
@@ -544,20 +550,20 @@ export default {
   align-items: center;
   gap: 1rem;
   padding: 1rem;
-  background: #000;
-  border: 1px solid #1a1a1a;
+  background: #f8f9fa;
+  border: 1px solid #e9ecef;
   border-radius: 10px;
   transition: all 0.3s ease;
 }
 
 .info-item:hover {
-  border-color: #333;
-  background: #0a0a0a;
+  border-color: #6366f1;
+  background: #ffffff;
 }
 
 .info-item > i {
   font-size: 1.25rem;
-  color: #00ff88;
+  color: #6366f1;
   width: 24px;
   text-align: center;
 }
@@ -572,18 +578,19 @@ export default {
 
 .info-label {
   font-size: 0.875rem;
-  color: #666;
+  color: #6c757d;
 }
 
 .info-value {
   font-size: 0.875rem;
-  color: #fff;
+  color: #212529;
   font-weight: 600;
 }
 
 .role-badge {
-  background: rgba(0, 255, 136, 0.1);
-  color: #00ff88;
+  background: #eef2ff;
+  border: 1px solid #c7d2fe;
+  color: #6366f1;
   padding: 0.25rem 0.75rem;
   border-radius: 6px;
   font-size: 0.75rem;
@@ -605,15 +612,15 @@ export default {
   align-items: flex-start;
   gap: 1rem;
   padding: 1rem;
-  background: #000;
-  border: 1px solid #1a1a1a;
+  background: #f8f9fa;
+  border: 1px solid #e9ecef;
   border-radius: 10px;
   transition: all 0.3s ease;
 }
 
 .activity-item:hover {
-  border-color: #333;
-  background: #0a0a0a;
+  border-color: #6366f1;
+  background: #ffffff;
 }
 
 .activity-icon {
@@ -628,23 +635,27 @@ export default {
 }
 
 .activity-icon.new {
-  background: rgba(0, 255, 136, 0.1);
-  color: #00ff88;
+  background: #d1fae5;
+  border: 1px solid #a7f3d0;
+  color: #10b981;
 }
 
 .activity-icon.update {
-  background: rgba(255, 193, 7, 0.1);
-  color: #ffc107;
+  background: #fef3c7;
+  border: 1px solid #fde68a;
+  color: #f59e0b;
 }
 
 .activity-icon.user {
-  background: rgba(33, 150, 243, 0.1);
-  color: #2196f3;
+  background: #dbeafe;
+  border: 1px solid #bfdbfe;
+  color: #3b82f6;
 }
 
 .activity-icon.sale {
-  background: rgba(156, 39, 176, 0.1);
-  color: #9c27b0;
+  background: #f3e8ff;
+  border: 1px solid #e9d5ff;
+  color: #a855f7;
 }
 
 .activity-content {
@@ -653,18 +664,24 @@ export default {
 
 .activity-text {
   font-size: 0.875rem;
-  color: #fff;
+  color: #212529;
   margin: 0 0 0.25rem 0;
   line-height: 1.4;
 }
 
 .activity-time {
   font-size: 0.75rem;
-  color: #666;
+  color: #6c757d;
 }
 
 /* Responsive */
-@media (max-width: 1200px) {
+@media (max-width: 1400px) {
+  .content-grid-gaming {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 1024px) {
   .content-grid-gaming {
     grid-template-columns: 1fr;
   }
