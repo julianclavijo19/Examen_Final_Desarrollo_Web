@@ -1,8 +1,8 @@
 <template>
   <div class="categories-gaming">
     <div class="page-header-gaming">
-      <h1>Categorías Gaming</h1>
-      <p>Explora nuestro catálogo de tecnología gaming</p>
+      <h1>Categorías</h1>
+      <p>Explora nuestro catálogo de productos</p>
     </div>
 
     <div v-if="loading" class="loading-state">
@@ -10,27 +10,39 @@
       <p>Cargando categorías...</p>
     </div>
 
-    <div v-else class="categories-grid">
-      <router-link 
-        v-for="(category, index) in categoriesData" 
-        :key="category.slug"
-        :to="`/dashboard/productos?category=${category.slug}`"
-        class="category-card-gaming"
-        :style="{ animationDelay: `${index * 0.1}s` }"
-      >
-        <div class="category-visual" :class="category.class">
-          <i :class="category.icon"></i>
-          <div class="category-glow"></div>
-        </div>
-        <div class="category-info">
-          <h3>{{ category.name }}</h3>
-          <p>{{ category.description }}</p>
-          <div class="category-count">
-            <span>Ver productos</span>
+    <div v-else-if="error" class="error-banner">
+      <i class="bi bi-exclamation-triangle"></i>
+      <span>{{ error }}</span>
+    </div>
+
+    <div v-if="!loading && categoriesData.length > 0" class="categories-horizontal-container">
+      <div class="categories-horizontal-grid">
+        <router-link 
+          v-for="(category, index) in categoriesData" 
+          :key="category.slug"
+          :to="`/dashboard/productos?category=${category.slug}`"
+          class="category-card-horizontal"
+          :style="{ animationDelay: `${index * 0.1}s` }"
+        >
+          <div class="category-icon-wrapper" :class="category.class">
+            <i :class="category.icon"></i>
+            <div class="category-glow-horizontal"></div>
+          </div>
+          <div class="category-content">
+            <h3>{{ category.name }}</h3>
+            <p>{{ category.description }}</p>
+          </div>
+          <div class="category-action">
             <i class="bi bi-arrow-right"></i>
           </div>
-        </div>
-      </router-link>
+        </router-link>
+      </div>
+    </div>
+
+    <div v-else-if="!loading && categoriesData.length === 0" class="empty-state">
+      <i class="bi bi-inbox"></i>
+      <h3>No hay categorías disponibles</h3>
+      <p>Intenta recargar la página</p>
     </div>
 
     <!-- Info adicional -->
@@ -38,21 +50,24 @@
       <i class="bi bi-info-circle"></i>
       <div>
         <h4>Sobre las Categorías</h4>
-        <p>Las categorías están optimizadas para productos gaming y tecnología. Los datos provienen de DummyJSON API.</p>
+        <p>Las categorías están organizadas para facilitar la navegación. Los datos provienen de DummyJSON API.</p>
       </div>
     </div>
   </div>
 </template>
 
 <script>
-import productService from '../services/api';
+import { categoryService } from '../services/api';
+import { GAMING_CATEGORIES } from '../config/constants';
 
 export default {
   name: 'CategoryView',
   data() {
+    // Inicializar con categorías por defecto para que siempre se muestren
     return {
       loading: false,
-      categoriesData: []
+      categoriesData: categoryService.mapCategories(GAMING_CATEGORIES),
+      error: null
     };
   },
   async mounted() {
@@ -61,46 +76,21 @@ export default {
   methods: {
     async loadCategories() {
       this.loading = true;
+      this.error = null;
+      
       try {
-        const categories = await productService.getCategories();
+        const categories = await categoryService.getCategories();
         
-        // Mapear categorías con información adicional
-        this.categoriesData = categories.map(slug => {
-          const categoryInfo = {
-            'laptops': {
-              name: 'Laptops Gaming',
-              description: 'Portátiles de alta performance para gaming',
-              icon: 'bi bi-laptop',
-              class: 'cat-laptops'
-            },
-            'smartphones': {
-              name: 'Smartphones',
-              description: 'Teléfonos inteligentes de última generación',
-              icon: 'bi bi-phone',
-              class: 'cat-phones'
-            },
-            'tablets': {
-              name: 'Tablets',
-              description: 'Tablets para trabajo y entretenimiento',
-              icon: 'bi bi-tablet',
-              class: 'cat-tablets'
-            },
-            'mobile-accessories': {
-              name: 'Accesorios Gaming',
-              description: 'Periféricos y accesorios para gamers',
-              icon: 'bi bi-controller',
-              class: 'cat-accessories'
-            }
-          };
-
-          return {
-            slug,
-            ...categoryInfo[slug]
-          };
-        });
-
+        // Si la API devuelve categorías válidas, actualizarlas
+        if (categories && Array.isArray(categories) && categories.length > 0) {
+          const mappedCategories = categoryService.mapCategories(categories);
+          if (mappedCategories.length > 0) {
+            this.categoriesData = mappedCategories;
+          }
+        }
       } catch (err) {
-        console.error('Error al cargar categorías:', err);
+        console.error('Error al cargar categorías desde API, usando categorías por defecto:', err);
+        this.error = 'No se pudieron cargar las categorías desde la API, mostrando categorías por defecto';
       } finally {
         this.loading = false;
       }
@@ -115,6 +105,7 @@ export default {
   max-width: 1400px;
   margin: 0 auto;
   animation: fadeIn 0.4s ease-out;
+  background: #f8f9fa;
 }
 
 .page-header-gaming {
@@ -124,16 +115,13 @@ export default {
 .page-header-gaming h1 {
   font-size: 2.5rem;
   font-weight: 700;
-  color: #fff;
+  color: #212529;
   margin: 0 0 0.5rem 0;
   letter-spacing: -0.03em;
-  background: linear-gradient(135deg, #fff 0%, #00ff88 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
 }
 
 .page-header-gaming p {
-  color: #666;
+  color: #6c757d;
   font-size: 1.125rem;
   margin: 0;
 }
@@ -146,8 +134,8 @@ export default {
 .spinner-large {
   width: 48px;
   height: 48px;
-  border: 3px solid #1a1a1a;
-  border-top-color: #00ff88;
+  border: 3px solid #e9ecef;
+  border-top-color: #6366f1;
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
   margin: 0 auto 1.5rem;
@@ -157,210 +145,284 @@ export default {
   to { transform: rotate(360deg); }
 }
 
+@keyframes slideInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
 .loading-state p {
-  color: #666;
+  color: #6c757d;
   margin: 0;
 }
 
-.categories-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
-  gap: 1.5rem;
+.categories-horizontal-container {
   margin-bottom: 2.5rem;
 }
 
-.category-card-gaming {
-  background: #0a0a0a;
-  border: 1px solid #1a1a1a;
-  border-radius: 16px;
-  overflow: hidden;
-  text-decoration: none;
-  display: flex;
-  flex-direction: column;
-  transition: all 0.4s ease;
-  animation: scaleIn 0.5s ease-out backwards;
-  position: relative;
+.categories-horizontal-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 1.5rem;
 }
 
-.category-card-gaming::before {
+.category-card-horizontal {
+  background: #ffffff;
+  border: 1px solid #dee2e6;
+  border-radius: 16px;
+  padding: 1.75rem;
+  text-decoration: none;
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  animation: slideInUp 0.5s ease-out backwards;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+
+.category-card-horizontal::before {
   content: '';
   position: absolute;
   inset: 0;
-  background: linear-gradient(135deg, transparent 0%, rgba(0, 255, 136, 0.05) 100%);
+  background: linear-gradient(135deg, rgba(99, 102, 241, 0.05) 0%, transparent 100%);
   opacity: 0;
   transition: opacity 0.4s ease;
 }
 
-.category-card-gaming:hover {
-  border-color: #00ff88;
-  transform: translateY(-8px);
-  box-shadow: 0 12px 32px rgba(0, 255, 136, 0.15);
-}
-
-.category-card-gaming:hover::before {
+.category-card-horizontal:hover::before {
   opacity: 1;
 }
 
-.category-visual {
-  height: 200px;
+.category-card-horizontal:hover {
+  border-color: #6366f1;
+  transform: translateY(-4px);
+  box-shadow: 0 12px 32px rgba(99, 102, 241, 0.15);
+}
+
+.category-icon-wrapper {
+  width: 80px;
+  height: 80px;
+  border-radius: 14px;
   display: flex;
   align-items: center;
   justify-content: center;
   position: relative;
   overflow: hidden;
+  flex-shrink: 0;
+  transition: all 0.4s ease;
 }
 
-.category-visual i {
-  font-size: 5rem;
+.category-card-horizontal:hover .category-icon-wrapper {
+  transform: scale(1.1) rotate(-5deg);
+}
+
+.category-icon-wrapper i {
+  font-size: 2.5rem;
   z-index: 2;
   position: relative;
   transition: all 0.4s ease;
 }
 
-.category-glow {
+.category-glow-horizontal {
   position: absolute;
-  width: 200px;
-  height: 200px;
+  width: 100px;
+  height: 100px;
   border-radius: 50%;
-  filter: blur(60px);
-  opacity: 0.3;
+  filter: blur(40px);
+  opacity: 0.4;
   transition: all 0.4s ease;
 }
 
-.category-card-gaming:hover .category-visual i {
-  transform: scale(1.1);
-}
-
-.category-card-gaming:hover .category-glow {
-  opacity: 0.5;
+.category-card-horizontal:hover .category-glow-horizontal {
+  opacity: 0.6;
   transform: scale(1.2);
 }
 
 .cat-laptops {
-  background: linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 100%);
+  background: #eef2ff;
+  border: 1px solid #c7d2fe;
 }
 
 .cat-laptops i {
-  color: #00ff88;
+  color: #6366f1;
 }
 
-.cat-laptops .category-glow {
-  background: #00ff88;
+.cat-laptops .category-glow-horizontal {
+  background: #6366f1;
 }
 
 .cat-phones {
-  background: linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 100%);
+  background: #dbeafe;
+  border: 1px solid #bfdbfe;
 }
 
 .cat-phones i {
-  color: #2196f3;
+  color: #3b82f6;
 }
 
-.cat-phones .category-glow {
-  background: #2196f3;
+.cat-phones .category-glow-horizontal {
+  background: #3b82f6;
 }
 
 .cat-tablets {
-  background: linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 100%);
+  background: #f3e8ff;
+  border: 1px solid #e9d5ff;
 }
 
 .cat-tablets i {
-  color: #9c27b0;
+  color: #a855f7;
 }
 
-.cat-tablets .category-glow {
-  background: #9c27b0;
+.cat-tablets .category-glow-horizontal {
+  background: #a855f7;
 }
 
 .cat-accessories {
-  background: linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 100%);
+  background: #fef3c7;
+  border: 1px solid #fde68a;
 }
 
 .cat-accessories i {
-  color: #ffc107;
+  color: #f59e0b;
 }
 
-.cat-accessories .category-glow {
-  background: #ffc107;
+.cat-accessories .category-glow-horizontal {
+  background: #f59e0b;
 }
 
-.category-info {
-  padding: 1.5rem;
+.category-content {
   flex: 1;
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
+  gap: 0.5rem;
 }
 
-.category-info h3 {
+.category-content h3 {
   font-size: 1.25rem;
   font-weight: 700;
-  color: #fff;
+  color: #212529;
   margin: 0;
   letter-spacing: -0.02em;
 }
 
-.category-info p {
-  color: #666;
-  font-size: 0.9375rem;
+.category-content p {
+  color: #6c757d;
+  font-size: 0.875rem;
   margin: 0;
   line-height: 1.5;
-  flex: 1;
 }
 
-.category-count {
+.category-action {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  background: #eef2ff;
+  border: 1px solid #c7d2fe;
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  padding-top: 0.75rem;
-  border-top: 1px solid #1a1a1a;
-  color: #00ff88;
-  font-size: 0.875rem;
-  font-weight: 600;
-  transition: all 0.3s ease;
+  justify-content: center;
+  color: #6366f1;
+  font-size: 1.25rem;
+  transition: all 0.4s ease;
+  flex-shrink: 0;
 }
 
-.category-card-gaming:hover .category-count {
-  gap: 0.5rem;
-}
-
-.category-count i {
-  font-size: 1rem;
-  transition: transform 0.3s ease;
-}
-
-.category-card-gaming:hover .category-count i {
-  transform: translateX(4px);
+.category-card-horizontal:hover .category-action {
+  background: #e0e7ff;
+  border-color: #6366f1;
+  transform: translateX(4px) scale(1.1);
 }
 
 .info-banner {
-  background: #0a0a0a;
-  border: 1px solid #1a1a1a;
+  background: #ffffff;
+  border: 1px solid #dee2e6;
   border-radius: 12px;
   padding: 1.5rem;
   display: flex;
   gap: 1rem;
   animation: slideInLeft 0.5s ease-out;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
 }
 
 .info-banner > i {
   font-size: 1.5rem;
-  color: #00ff88;
+  color: #6366f1;
   flex-shrink: 0;
 }
 
 .info-banner h4 {
   font-size: 1rem;
   font-weight: 600;
-  color: #fff;
+  color: #212529;
   margin: 0 0 0.5rem 0;
 }
 
 .info-banner p {
-  color: #666;
+  color: #6c757d;
   font-size: 0.875rem;
   margin: 0;
   line-height: 1.6;
+}
+
+.error-banner {
+  background: #fee2e2;
+  border: 1px solid #ef4444;
+  border-radius: 8px;
+  padding: 1rem;
+  margin-bottom: 1.5rem;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  color: #ef4444;
+  font-size: 0.875rem;
+}
+
+.error-banner i {
+  font-size: 1.125rem;
+}
+
+.empty-state {
+  text-align: center;
+  padding: 4rem 2rem;
+}
+
+.empty-state i {
+  font-size: 3rem;
+  color: #adb5bd;
+  margin-bottom: 1rem;
+}
+
+.empty-state h3 {
+  color: #212529;
+  font-size: 1.25rem;
+  margin: 1rem 0 0.5rem 0;
+}
+
+.empty-state p {
+  color: #6c757d;
+  margin: 0;
+}
+
+@media (max-width: 1024px) {
+  .categories-horizontal-grid {
+    grid-template-columns: 1fr;
+  }
 }
 
 @media (max-width: 768px) {
@@ -372,16 +434,32 @@ export default {
     font-size: 2rem;
   }
 
-  .categories-grid {
-    grid-template-columns: 1fr;
+  .category-card-horizontal {
+    padding: 1.25rem;
+    gap: 1rem;
   }
 
-  .category-visual {
-    height: 160px;
+  .category-icon-wrapper {
+    width: 64px;
+    height: 64px;
   }
 
-  .category-visual i {
-    font-size: 4rem;
+  .category-icon-wrapper i {
+    font-size: 2rem;
+  }
+
+  .category-content h3 {
+    font-size: 1.125rem;
+  }
+
+  .category-content p {
+    font-size: 0.8125rem;
+  }
+
+  .category-action {
+    width: 36px;
+    height: 36px;
+    font-size: 1.125rem;
   }
 }
 </style>

@@ -34,21 +34,80 @@
     </div>
 
     <div v-else>
-      <div class="products-grid">
-        <ProductCardComponent
-          v-for="product in filteredProducts"
-          :key="product.id"
-          :product="product"
-          @view="viewProduct"
-          @edit="editProduct"
-          @delete="confirmDelete"
-        />
-      </div>
+      <div class="products-table-container">
+        <table class="products-table">
+          <thead>
+            <tr>
+              <th class="col-image">Imagen</th>
+              <th class="col-name">Producto</th>
+              <th class="col-category">Categoría</th>
+              <th class="col-price">Precio</th>
+              <th class="col-stock">Stock</th>
+              <th class="col-rating">Rating</th>
+              <th class="col-actions">Acciones</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr 
+              v-for="product in filteredProducts" 
+              :key="product.id"
+              class="product-row"
+            >
+              <td class="col-image">
+                <div class="product-image-cell">
+                  <img 
+                    :src="product.thumbnail || product.image" 
+                    :alt="product.title"
+                    @error="handleImageError"
+                  >
+                </div>
+              </td>
+              <td class="col-name">
+                <div class="product-name-cell">
+                  <h4>{{ product.title }}</h4>
+                  <p v-if="product.description">{{ truncateText(product.description, 60) }}</p>
+                </div>
+              </td>
+              <td class="col-category">
+                <span class="category-badge">{{ getCategoryName(product.category) }}</span>
+              </td>
+              <td class="col-price">
+                <span class="price-value">${{ product.price }}</span>
+              </td>
+              <td class="col-stock">
+                <span class="stock-badge" :class="getStockClass(product.stock)">
+                  {{ product.stock ? product.stock : 'N/A' }}
+                </span>
+              </td>
+              <td class="col-rating">
+                <div class="rating-cell" v-if="product.rating">
+                  <i class="bi bi-star-fill"></i>
+                  <span>{{ product.rating }}</span>
+                </div>
+                <span v-else class="no-rating">-</span>
+              </td>
+              <td class="col-actions">
+                <div class="actions-cell">
+                  <button class="action-btn view" @click="viewProduct(product)" title="Ver">
+                    <i class="bi bi-eye"></i>
+                  </button>
+                  <button class="action-btn edit" @click="editProduct(product)" title="Editar">
+                    <i class="bi bi-pencil"></i>
+                  </button>
+                  <button class="action-btn delete" @click="confirmDelete(product)" title="Eliminar">
+                    <i class="bi bi-trash"></i>
+                  </button>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
 
-      <div v-if="filteredProducts.length === 0" class="empty-state">
-        <i class="bi bi-inbox"></i>
-        <h3>No se encontraron productos</h3>
-        <p>Intenta con otra búsqueda o categoría</p>
+        <div v-if="filteredProducts.length === 0" class="empty-state">
+          <i class="bi bi-inbox"></i>
+          <h3>No se encontraron productos</h3>
+          <p>Intenta con otra búsqueda o categoría</p>
+        </div>
       </div>
     </div>
 
@@ -103,6 +162,9 @@
                 {{ getCategoryName(category) }}
               </option>
             </select>
+            <small v-if="!currentProduct.category" style="color: #6c757d; margin-top: 0.25rem; display: block;">
+              Selecciona una categoría para el producto
+            </small>
           </div>
 
           <div class="form-group">
@@ -146,7 +208,7 @@
                 </div>
                 <div class="detail-item">
                   <span class="label">Categoría:</span>
-                  <span class="value">{{ viewingProduct.category }}</span>
+                  <span class="value">{{ getCategoryName(viewingProduct.category) }}</span>
                 </div>
                 <div class="detail-item" v-if="viewingProduct.stock">
                   <span class="label">Stock:</span>
@@ -169,14 +231,10 @@
 </template>
 
 <script>
-import ProductCardComponent from '../components/ProductCardComponent.vue';
-import productService from '../services/api';
+import { productService, categoryService } from '../services/api';
 
 export default {
   name: 'ProductView',
-  components: {
-    ProductCardComponent
-  },
   data() {
     return {
       products: [],
@@ -197,12 +255,25 @@ export default {
     filteredProducts() {
       let filtered = this.products;
 
+      // Filtrar por categoría primero
+      if (this.selectedCategory) {
+        filtered = filtered.filter(product => 
+          product.category === this.selectedCategory
+        );
+      }
+
+      // Luego filtrar por búsqueda
       if (this.searchQuery) {
         const query = this.searchQuery.toLowerCase();
-        filtered = filtered.filter(product =>
-          product.title.toLowerCase().includes(query) ||
-          (product.description && product.description.toLowerCase().includes(query))
-        );
+        filtered = filtered.filter(product => {
+          const categoryName = this.getCategoryName(product.category).toLowerCase();
+          return (
+            product.title.toLowerCase().includes(query) ||
+            (product.description && product.description.toLowerCase().includes(query)) ||
+            (product.category && product.category.toLowerCase().includes(query)) ||
+            categoryName.includes(query)
+          );
+        });
       }
 
       return filtered;
@@ -211,6 +282,12 @@ export default {
   async mounted() {
     await this.loadProducts();
     await this.loadCategories();
+    
+    // Leer parámetro de categoría de la URL
+    const categoryParam = this.$route.query.category;
+    if (categoryParam) {
+      this.selectedCategory = categoryParam;
+    }
   },
   methods: {
     getEmptyProduct() {
@@ -218,21 +295,15 @@ export default {
         title: '',
         price: 0,
         description: '',
-        category: 'laptops',
-        thumbnail: 'https://via.placeholder.com/300x300/000000/00ff88?text=Gaming+Product',
+        category: '',
+        thumbnail: 'https://via.placeholder.com/300x300/f8f9fa/6366f1?text=Producto',
         stock: 10,
         rating: 4.5
       };
     },
 
     getCategoryName(category) {
-      const names = {
-        'laptops': 'Laptops Gaming',
-        'smartphones': 'Smartphones',
-        'tablets': 'Tablets',
-        'mobile-accessories': 'Accesorios Gaming'
-      };
-      return names[category] || category;
+      return categoryService.getCategoryName(category);
     },
 
     async loadProducts() {
@@ -250,27 +321,19 @@ export default {
 
     async loadCategories() {
       try {
-        this.categories = await productService.getCategories();
+        this.categories = await categoryService.getCategories();
       } catch (err) {
         console.error('Error al cargar categorías:', err);
       }
     },
 
     async filterByCategory() {
+      // Si no hay categoría seleccionada, cargar todos los productos
       if (!this.selectedCategory) {
         await this.loadProducts();
-        return;
       }
-
-      this.loading = true;
-      try {
-        this.products = await productService.getProductsByCategory(this.selectedCategory);
-      } catch (err) {
-        this.error = 'Error al filtrar productos';
-        console.error(err);
-      } finally {
-        this.loading = false;
-      }
+      // El filtrado se hace en computed filteredProducts
+      // No necesitamos recargar productos desde la API
     },
 
     showCreateModal() {
@@ -299,6 +362,12 @@ export default {
     },
 
     async saveProduct() {
+      // Validar que la categoría esté seleccionada
+      if (!this.currentProduct.category) {
+        alert('Por favor selecciona una categoría');
+        return;
+      }
+
       this.saving = true;
       try {
         if (this.isEditing) {
@@ -330,6 +399,19 @@ export default {
           alert('Error al eliminar el producto');
         }
       }
+    },
+    truncateText(text, maxLength) {
+      if (!text) return '';
+      return text.length > maxLength ? text.substring(0, maxLength) + '...' : text;
+    },
+    getStockClass(stock) {
+      if (!stock) return 'no-stock';
+      if (stock > 10) return 'in-stock';
+      if (stock > 0) return 'low-stock';
+      return 'out-stock';
+    },
+    handleImageError(event) {
+      event.target.src = 'https://via.placeholder.com/300x300/f8f9fa/6366f1?text=Sin+Imagen';
     }
   }
 }
@@ -341,6 +423,7 @@ export default {
   max-width: 1400px;
   margin: 0 auto;
   animation: fadeIn 0.4s ease-out;
+  background: #f8f9fa;
 }
 
 .page-header {
@@ -351,7 +434,7 @@ export default {
 }
 
 .page-header h1 {
-  color: #fff;
+  color: #212529;
   font-size: 2rem;
   font-weight: 700;
   margin: 0;
@@ -365,11 +448,11 @@ export default {
 
 .search-input,
 .select-input {
-  background: #0a0a0a;
-  border: 1px solid #1a1a1a;
+  background: #ffffff;
+  border: 1px solid #dee2e6;
   border-radius: 8px;
   padding: 0.75rem 1rem;
-  color: #fff;
+  color: #212529;
   font-size: 0.9375rem;
   transition: all 0.2s;
 }
@@ -385,12 +468,13 @@ export default {
 .search-input:focus,
 .select-input:focus {
   outline: none;
-  border-color: #00ff88;
+  border-color: #6366f1;
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
 }
 
 .btn-primary {
-  background: #00ff88;
-  color: #000;
+  background: #6366f1;
+  color: #ffffff;
   border: none;
   border-radius: 8px;
   padding: 0.75rem 1.5rem;
@@ -404,8 +488,9 @@ export default {
 }
 
 .btn-primary:hover:not(:disabled) {
-  background: #00e67a;
+  background: #4f46e5;
   transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
 }
 
 .btn-primary:disabled {
@@ -415,8 +500,8 @@ export default {
 
 .btn-secondary {
   background: transparent;
-  color: #999;
-  border: 1px solid #333;
+  color: #6c757d;
+  border: 1px solid #dee2e6;
   border-radius: 8px;
   padding: 0.75rem 1.5rem;
   font-size: 0.9375rem;
@@ -426,8 +511,9 @@ export default {
 }
 
 .btn-secondary:hover {
-  border-color: #666;
-  color: #fff;
+  border-color: #6366f1;
+  color: #6366f1;
+  background: #f8f9fa;
 }
 
 .loading,
@@ -440,8 +526,8 @@ export default {
 .spinner-large {
   width: 40px;
   height: 40px;
-  border: 3px solid #1a1a1a;
-  border-top-color: #00ff88;
+  border: 3px solid #e9ecef;
+  border-top-color: #6366f1;
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
   margin: 0 auto 1rem;
@@ -451,42 +537,272 @@ export default {
   to { transform: rotate(360deg); }
 }
 
+@keyframes slideInLeft {
+  from {
+    opacity: 0;
+    transform: translateX(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
 .loading p,
 .error-state p,
 .empty-state p {
-  color: #666;
+  color: #6c757d;
   margin: 0.5rem 0 0 0;
 }
 
 .error-state i,
 .empty-state i {
   font-size: 3rem;
-  color: #333;
+  color: #adb5bd;
   margin-bottom: 1rem;
 }
 
 .empty-state h3 {
-  color: #fff;
+  color: #212529;
   font-size: 1.25rem;
   margin: 1rem 0 0.5rem 0;
 }
 
-.products-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  gap: 1.5rem;
+.products-table-container {
+  background: #ffffff;
+  border: 1px solid #dee2e6;
+  border-radius: 16px;
+  overflow: hidden;
+  overflow-x: auto;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
 }
 
-.products-grid > * {
-  animation: scaleIn 0.4s ease-out backwards;
+.products-table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 1000px;
 }
 
-.products-grid > *:nth-child(1) { animation-delay: 0.05s; }
-.products-grid > *:nth-child(2) { animation-delay: 0.1s; }
-.products-grid > *:nth-child(3) { animation-delay: 0.15s; }
-.products-grid > *:nth-child(4) { animation-delay: 0.2s; }
-.products-grid > *:nth-child(5) { animation-delay: 0.25s; }
-.products-grid > *:nth-child(6) { animation-delay: 0.3s; }
+.products-table thead {
+  background: #f8f9fa;
+  border-bottom: 2px solid #dee2e6;
+}
+
+.products-table th {
+  padding: 1.25rem 1rem;
+  text-align: left;
+  color: #6c757d;
+  font-size: 0.875rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.products-table th.col-image {
+  width: 80px;
+}
+
+.products-table th.col-name {
+  min-width: 250px;
+}
+
+.products-table th.col-category {
+  width: 140px;
+}
+
+.products-table th.col-price {
+  width: 100px;
+}
+
+.products-table th.col-stock {
+  width: 100px;
+}
+
+.products-table th.col-rating {
+  width: 100px;
+}
+
+.products-table th.col-actions {
+  width: 140px;
+  text-align: center;
+}
+
+.product-row {
+  border-bottom: 1px solid #dee2e6;
+  transition: all 0.3s ease;
+  animation: slideInLeft 0.4s ease-out backwards;
+}
+
+.product-row:nth-child(1) { animation-delay: 0.05s; }
+.product-row:nth-child(2) { animation-delay: 0.1s; }
+.product-row:nth-child(3) { animation-delay: 0.15s; }
+.product-row:nth-child(4) { animation-delay: 0.2s; }
+.product-row:nth-child(5) { animation-delay: 0.25s; }
+.product-row:nth-child(6) { animation-delay: 0.3s; }
+
+.product-row:hover {
+  background: #f8f9fa;
+  border-color: #6366f1;
+}
+
+.product-row td {
+  padding: 1.25rem 1rem;
+  vertical-align: middle;
+}
+
+.product-image-cell {
+  width: 60px;
+  height: 60px;
+  border-radius: 8px;
+  overflow: hidden;
+  background: #f8f9fa;
+  border: 1px solid #dee2e6;
+}
+
+.product-image-cell img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.3s ease;
+}
+
+.product-row:hover .product-image-cell img {
+  transform: scale(1.1);
+}
+
+.product-name-cell h4 {
+  color: #212529;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  margin: 0 0 0.375rem 0;
+  line-height: 1.4;
+}
+
+.product-name-cell p {
+  color: #6c757d;
+  font-size: 0.8125rem;
+  margin: 0;
+  line-height: 1.4;
+}
+
+.category-badge {
+  display: inline-block;
+  background: #eef2ff;
+  color: #6366f1;
+  padding: 0.375rem 0.75rem;
+  border-radius: 6px;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  border: 1px solid #c7d2fe;
+}
+
+.price-value {
+  color: #6366f1;
+  font-size: 1.125rem;
+  font-weight: 700;
+}
+
+.stock-badge {
+  display: inline-block;
+  padding: 0.375rem 0.75rem;
+  border-radius: 6px;
+  font-size: 0.8125rem;
+  font-weight: 600;
+}
+
+.stock-badge.in-stock {
+  background: #d1fae5;
+  color: #10b981;
+  border: 1px solid #86efac;
+}
+
+.stock-badge.low-stock {
+  background: #fef3c7;
+  color: #f59e0b;
+  border: 1px solid #fde68a;
+}
+
+.stock-badge.out-stock {
+  background: #fee2e2;
+  color: #ef4444;
+  border: 1px solid #fca5a5;
+}
+
+.stock-badge.no-stock {
+  background: #f3f4f6;
+  color: #6b7280;
+  border: 1px solid #d1d5db;
+}
+
+.rating-cell {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  color: #f59e0b;
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.rating-cell i {
+  font-size: 1rem;
+}
+
+.no-rating {
+  color: #adb5bd;
+  font-size: 0.875rem;
+}
+
+.actions-cell {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+.actions-cell .action-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  border: 1px solid #dee2e6;
+  background: transparent;
+  color: #6c757d;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s ease;
+  font-size: 0.9375rem;
+}
+
+.actions-cell .action-btn.view:hover {
+  background: #dbeafe;
+  border-color: #3b82f6;
+  color: #3b82f6;
+  transform: translateY(-2px);
+}
+
+.actions-cell .action-btn.edit:hover {
+  background: #fef3c7;
+  border-color: #f59e0b;
+  color: #f59e0b;
+  transform: translateY(-2px);
+}
+
+.actions-cell .action-btn.delete:hover {
+  background: #fee2e2;
+  border-color: #ef4444;
+  color: #ef4444;
+  transform: translateY(-2px);
+}
 
 .modal-overlay {
   position: fixed;
@@ -494,7 +810,7 @@ export default {
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0,0,0,0.85);
+  background: rgba(0,0,0,0.5);
   backdrop-filter: blur(8px);
   display: flex;
   align-items: center;
@@ -505,27 +821,28 @@ export default {
 }
 
 .modal-content {
-  background: #0a0a0a;
-  border: 1px solid #00ff88;
+  background: #ffffff;
+  border: 1px solid #dee2e6;
   border-radius: 12px;
   max-width: 600px;
   width: 100%;
   max-height: 90vh;
   overflow: auto;
   animation: scaleIn 0.3s ease-out;
-  box-shadow: 0 20px 60px rgba(0, 255, 136, 0.2);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
 }
 
 .modal-header {
   padding: 1.5rem;
-  border-bottom: 1px solid #1a1a1a;
+  border-bottom: 1px solid #dee2e6;
   display: flex;
   align-items: center;
   justify-content: space-between;
+  background: #f8f9fa;
 }
 
 .modal-header h2 {
-  color: #fff;
+  color: #212529;
   font-size: 1.25rem;
   font-weight: 600;
   margin: 0;
@@ -534,14 +851,14 @@ export default {
 .btn-close {
   background: transparent;
   border: none;
-  color: #666;
+  color: #6c757d;
   cursor: pointer;
   padding: 0.5rem;
   transition: color 0.2s;
 }
 
 .btn-close:hover {
-  color: #fff;
+  color: #212529;
 }
 
 .modal-body {
@@ -560,7 +877,7 @@ export default {
 
 .form-group label {
   display: block;
-  color: #999;
+  color: #495057;
   font-size: 0.875rem;
   font-weight: 500;
   margin-bottom: 0.5rem;
@@ -570,11 +887,11 @@ export default {
 .form-group textarea,
 .form-group select {
   width: 100%;
-  background: #000;
-  border: 1px solid #1a1a1a;
+  background: #ffffff;
+  border: 1px solid #dee2e6;
   border-radius: 8px;
   padding: 0.75rem;
-  color: #fff;
+  color: #212529;
   font-size: 0.9375rem;
   transition: all 0.2s;
 }
@@ -583,7 +900,8 @@ export default {
 .form-group textarea:focus,
 .form-group select:focus {
   outline: none;
-  border-color: #00ff88;
+  border-color: #6366f1;
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
 }
 
 .modal-footer {
@@ -604,13 +922,13 @@ export default {
 }
 
 .detail-info h3 {
-  color: #fff;
+  color: #212529;
   font-size: 1.5rem;
   margin: 0 0 1rem 0;
 }
 
 .description {
-  color: #999;
+  color: #6c757d;
   line-height: 1.6;
   margin-bottom: 1.5rem;
 }
@@ -624,17 +942,18 @@ export default {
   display: flex;
   justify-content: space-between;
   padding: 0.75rem;
-  background: #000;
+  background: #f8f9fa;
   border-radius: 8px;
+  border: 1px solid #dee2e6;
 }
 
 .detail-item .label {
-  color: #666;
+  color: #6c757d;
   font-size: 0.875rem;
 }
 
 .detail-item .value {
-  color: #fff;
+  color: #212529;
   font-weight: 600;
   font-size: 0.875rem;
 }
@@ -648,8 +967,29 @@ export default {
     flex-direction: column;
   }
   
-  .products-grid {
-    grid-template-columns: 1fr;
+  .products-table-container {
+    border-radius: 12px;
+  }
+  
+  .products-table {
+    min-width: 800px;
+  }
+  
+  .products-table th,
+  .products-table td {
+    padding: 0.875rem 0.75rem;
+    font-size: 0.875rem;
+  }
+  
+  .actions-cell {
+    flex-direction: column;
+    gap: 0.25rem;
+  }
+  
+  .actions-cell .action-btn {
+    width: 32px;
+    height: 32px;
+    font-size: 0.875rem;
   }
 }
 </style>
