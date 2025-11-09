@@ -128,11 +128,39 @@ export default {
   align-items: center;
   justify-content: center;
   padding: 2rem;
+  position: relative;
+  overflow: hidden;
+}
+
+.login-minimal::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 500px;
+  height: 500px;
+  background: radial-gradient(circle, rgba(0, 255, 136, 0.1) 0%, transparent 70%);
+  transform: translate(-50%, -50%);
+  animation: pulse 4s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    transform: translate(-50%, -50%) scale(1);
+    opacity: 0.5;
+  }
+  50% {
+    transform: translate(-50%, -50%) scale(1.2);
+    opacity: 0.3;
+  }
 }
 
 .login-container {
   width: 100%;
   max-width: 400px;
+  position: relative;
+  z-index: 1;
+  animation: slideInLeft 0.6s ease-out;
 }
 
 .login-header {
@@ -144,6 +172,17 @@ export default {
   font-size: 3rem;
   color: #00ff88;
   margin-bottom: 1rem;
+  animation: float 3s ease-in-out infinite;
+  display: inline-block;
+}
+
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
 }
 
 .login-header h1 {
@@ -259,21 +298,38 @@ export default {
 }
 
 .btn-login {
-  background: #00ff88;
+  background: linear-gradient(135deg, #00ff88 0%, #00e67a 100%);
   color: #000;
   border: none;
   border-radius: 8px;
   padding: 0.875rem;
   font-size: 0.9375rem;
-  font-weight: 600;
+  font-weight: 700;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   margin-top: 0.5rem;
+  position: relative;
+  overflow: hidden;
+}
+
+.btn-login::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+  transition: left 0.5s;
 }
 
 .btn-login:hover:not(:disabled) {
-  background: #00e67a;
-  transform: translateY(-1px);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 16px rgba(0, 255, 136, 0.3);
+}
+
+.btn-login:hover::before {
+  left: 100%;
 }
 
 .btn-login:disabled {

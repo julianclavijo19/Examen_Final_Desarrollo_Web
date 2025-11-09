@@ -18,7 +18,7 @@
       <select class="select-input" v-model="selectedCategory" @change="filterByCategory">
         <option value="">Todas las categorías</option>
         <option v-for="category in categories" :key="category" :value="category">
-          {{ category }}
+          {{ getCategoryName(category) }}
         </option>
       </select>
     </div>
@@ -96,11 +96,11 @@
           </div>
 
           <div class="form-group">
-            <label>Categoría</label>
-            <select v-model="currentProduct.category">
+            <label>Categoría *</label>
+            <select v-model="currentProduct.category" required>
               <option value="">Seleccionar categoría</option>
               <option v-for="category in categories" :key="category" :value="category">
-                {{ category }}
+                {{ getCategoryName(category) }}
               </option>
             </select>
           </div>
@@ -218,10 +218,21 @@ export default {
         title: '',
         price: 0,
         description: '',
-        category: '',
-        thumbnail: '',
-        stock: 0
+        category: 'laptops',
+        thumbnail: 'https://via.placeholder.com/300x300/000000/00ff88?text=Gaming+Product',
+        stock: 10,
+        rating: 4.5
       };
+    },
+
+    getCategoryName(category) {
+      const names = {
+        'laptops': 'Laptops Gaming',
+        'smartphones': 'Smartphones',
+        'tablets': 'Tablets',
+        'mobile-accessories': 'Accesorios Gaming'
+      };
+      return names[category] || category;
     },
 
     async loadProducts() {
@@ -329,6 +340,7 @@ export default {
   padding: 2rem;
   max-width: 1400px;
   margin: 0 auto;
+  animation: fadeIn 0.4s ease-out;
 }
 
 .page-header {
@@ -465,6 +477,17 @@ export default {
   gap: 1.5rem;
 }
 
+.products-grid > * {
+  animation: scaleIn 0.4s ease-out backwards;
+}
+
+.products-grid > *:nth-child(1) { animation-delay: 0.05s; }
+.products-grid > *:nth-child(2) { animation-delay: 0.1s; }
+.products-grid > *:nth-child(3) { animation-delay: 0.15s; }
+.products-grid > *:nth-child(4) { animation-delay: 0.2s; }
+.products-grid > *:nth-child(5) { animation-delay: 0.25s; }
+.products-grid > *:nth-child(6) { animation-delay: 0.3s; }
+
 .modal-overlay {
   position: fixed;
   top: 0;
@@ -472,21 +495,25 @@ export default {
   right: 0;
   bottom: 0;
   background: rgba(0,0,0,0.85);
+  backdrop-filter: blur(8px);
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 2000;
   padding: 2rem;
+  animation: fadeIn 0.3s ease-out;
 }
 
 .modal-content {
   background: #0a0a0a;
-  border: 1px solid #1a1a1a;
+  border: 1px solid #00ff88;
   border-radius: 12px;
   max-width: 600px;
   width: 100%;
   max-height: 90vh;
   overflow: auto;
+  animation: scaleIn 0.3s ease-out;
+  box-shadow: 0 20px 60px rgba(0, 255, 136, 0.2);
 }
 
 .modal-header {

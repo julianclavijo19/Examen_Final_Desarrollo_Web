@@ -3,8 +3,16 @@ import axios from 'axios';
 // URL base de la API externa (DummyJSON)
 const API_BASE_URL = 'https://dummyjson.com';
 
+// Categorías gaming/tech permitidas
+const GAMING_CATEGORIES = [
+  'laptops',
+  'smartphones', 
+  'tablets',
+  'mobile-accessories'
+];
+
 /**
- * Servicio para gestionar operaciones CRUD de productos
+ * Servicio para gestionar operaciones CRUD de productos gaming/tech
  * usando la API externa DummyJSON
  */
 class ProductService {
@@ -53,17 +61,34 @@ class ProductService {
   }
 
   /**
-   * Obtener todas las categorías disponibles
+   * Obtener todas las categorías disponibles (solo gaming/tech)
    * @returns {Promise} Lista de categorías
    */
   async getCategories() {
     try {
       const response = await axios.get(`${API_BASE_URL}/products/categories`);
-      return response.data;
+      // Filtrar solo categorías gaming/tech
+      const allCategories = response.data;
+      return GAMING_CATEGORIES.filter(cat => allCategories.includes(cat));
     } catch (error) {
       console.error('Error al obtener categorías:', error);
       throw error;
     }
+  }
+
+  /**
+   * Obtener nombre legible de categoría
+   * @param {string} category - Slug de la categoría
+   * @returns {string} Nombre formateado
+   */
+  getCategoryName(category) {
+    const names = {
+      'laptops': 'Laptops Gaming',
+      'smartphones': 'Smartphones',
+      'tablets': 'Tablets',
+      'mobile-accessories': 'Accesorios Gaming'
+    };
+    return names[category] || category;
   }
 
   /**

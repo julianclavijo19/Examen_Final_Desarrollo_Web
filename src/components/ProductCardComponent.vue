@@ -76,14 +76,30 @@ export default {
   border: 1px solid #1a1a1a;
   border-radius: 12px;
   overflow: hidden;
-  transition: all 0.3s;
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
   display: flex;
   flex-direction: column;
+  position: relative;
+}
+
+.product-card-minimal::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, transparent 0%, rgba(0, 255, 136, 0.05) 100%);
+  opacity: 0;
+  transition: opacity 0.4s ease;
+  pointer-events: none;
 }
 
 .product-card-minimal:hover {
   border-color: #00ff88;
-  transform: translateY(-4px);
+  transform: translateY(-6px);
+  box-shadow: 0 12px 32px rgba(0, 255, 136, 0.15);
+}
+
+.product-card-minimal:hover::before {
+  opacity: 1;
 }
 
 .product-image {
@@ -101,6 +117,11 @@ export default {
   width: 100%;
   height: 100%;
   object-fit: cover;
+  transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.product-card-minimal:hover .product-image img {
+  transform: scale(1.05);
 }
 
 .product-category {
@@ -108,12 +129,19 @@ export default {
   top: 0.75rem;
   right: 0.75rem;
   background: rgba(0, 255, 136, 0.9);
+  backdrop-filter: blur(8px);
   color: #000;
   padding: 0.25rem 0.75rem;
   border-radius: 6px;
   font-size: 0.75rem;
   font-weight: 600;
   text-transform: capitalize;
+  transition: all 0.3s ease;
+}
+
+.product-card-minimal:hover .product-category {
+  background: #00ff88;
+  transform: translateY(-2px);
 }
 
 .product-info {
@@ -186,8 +214,21 @@ export default {
   padding: 0.75rem;
   color: #999;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   font-size: 1rem;
+  position: relative;
+  overflow: hidden;
+}
+
+.action-btn::before {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 0;
+  background: #00ff88;
+  transition: height 0.3s ease;
 }
 
 .action-btn:last-child {
@@ -197,10 +238,19 @@ export default {
 .action-btn:hover {
   background: #1a1a1a;
   color: #00ff88;
+  transform: translateY(-2px);
+}
+
+.action-btn:hover::before {
+  height: 3px;
+}
+
+.action-btn.danger::before {
+  background: #dc3545;
 }
 
 .action-btn.danger:hover {
-  background: #dc3545;
-  color: #fff;
+  background: rgba(220, 53, 69, 0.1);
+  color: #dc3545;
 }
 </style>
