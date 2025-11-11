@@ -551,13 +551,12 @@ class UserService {
       console.log('🔍 Sesión activa del administrador:', session.user.id);
       
       // Agregar timeout a la consulta DELETE
-      const deleteQuery = supabase
+      const deletePromise = supabase
         .from('users')
         .delete()
         .eq('id', userId);
       
       // Crear una promesa con timeout
-      const deletePromise = deleteQuery;
       const timeoutPromise = new Promise((_, reject) => {
         setTimeout(() => reject(new Error('Timeout: La consulta DELETE tardó más de 8 segundos')), 8000);
       });
