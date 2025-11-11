@@ -1,15 +1,34 @@
 <template>
   <div id="app">
-    <router-view></router-view>
+    <router-view v-if="appReady"></router-view>
+    <div v-else class="loading-screen">
+      <div class="spinner-large"></div>
+      <p>Cargando aplicación...</p>
+    </div>
   </div>
 </template>
 
 <script>
 export default {
   name: 'App',
+  data() {
+    return {
+      appReady: false
+    };
+  },
   mounted() {
     console.log('%c🎮 GamerHub Pro Dashboard', 'color: #00ff88; font-size: 20px; font-weight: bold;');
     console.log('%c⚡ Dashboard Minimalista para PC Gaming', 'color: #666; font-size: 14px;');
+    
+    // Marcar la app como lista después de un breve delay para asegurar que todo esté cargado
+    setTimeout(() => {
+      this.appReady = true;
+    }, 100);
+  },
+  errorCaptured(err, instance, info) {
+    console.error('Error capturado en App:', err, info);
+    // No prevenir el error, solo loguearlo
+    return false;
   }
 }
 </script>
@@ -67,6 +86,31 @@ body {
 
 #app {
   min-height: 100vh;
+}
+
+/* Loading screen */
+.loading-screen {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-direction: column;
+  height: 100vh;
+  background: var(--color-bg-primary);
+}
+
+.spinner-large {
+  width: 50px;
+  height: 50px;
+  border: 4px solid var(--color-border);
+  border-top-color: var(--color-primary);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 /* Scrollbar personalizado */
