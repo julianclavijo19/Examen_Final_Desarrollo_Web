@@ -221,10 +221,22 @@ export default {
       return getGreeting();
     }
   },
-  mounted() {
-    this.currentUser = authService.getCurrentUser();
+  async mounted() {
+    // Obtener usuario actual - intentar desde Supabase primero
+    try {
+      this.currentUser = await authService.getCurrentUserAsync() || authService.getCurrentUser();
+    } catch (error) {
+      console.error('Error al obtener usuario:', error);
+      this.currentUser = authService.getCurrentUser();
+    }
+    
     this.updateTime();
-    setInterval(this.updateTime, 1000);
+    this.timeInterval = setInterval(() => this.updateTime(), 1000);
+  },
+  beforeUnmount() {
+    if (this.timeInterval) {
+      clearInterval(this.timeInterval);
+    }
   },
   methods: {
     updateTime() {

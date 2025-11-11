@@ -120,29 +120,64 @@ const router = createRouter({
  * Guard de navegación global
  * Protege las rutas que requieren autenticación
  */
-router.beforeEach((to, from, next) => {
+router.beforeEach(async (to, from, next) => {
   const requiresAuth = to.matched.some(record => record.meta.requiresAuth);
   const requiresAdmin = to.matched.some(record => record.meta.requiresAdmin);
-  const isAuthenticated = authService.isAuthenticated();
-  const currentUser = authService.getCurrentUser();
-  const isAdmin = currentUser && currentUser.rol === 'admin';
 
   // Actualizar título de la página
   document.title = `GamerHub Pro - ${to.meta.title || 'Dashboard'}`;
 
-  if (requiresAuth && !isAuthenticated) {
-    // Redirigir al login si la ruta requiere autenticación y no está autenticado
-    next('/login');
-  } else if (requiresAdmin && !isAdmin) {
-    // Redirigir al dashboard si la ruta requiere admin y el usuario no es admin
-    next('/dashboard');
-  } else if (to.path === '/login' && isAuthenticated) {
-    // Redirigir al dashboard si ya está autenticado e intenta ir al login
-    next('/dashboard');
-  } else {
-    // Permitir navegación
-    next();
+  // Si la ruta requiere autenticación, verificar de forma asíncrona
+  if (requiresAuth || requiresAdmin) {
+    try {
+      // Verificar autenticación de forma asíncrona
+      const isAuthenticated = await authService.isAuthenticatedAsync();
+      
+      if (!isAuthenticated) {
+        // Redirigir al login si la ruta requiere autenticación y no está autenticado
+        if (requiresAuth) {
+          next('/login');
+          return;
+        }
+      }
+
+      // Si la ruta requiere admin, verificar el rol
+      if (requiresAdmin) {
+        const currentUser = await authService.getCurrentUserAsync() || authService.getCurrentUser();
+        
+        if (!currentUser || currentUser.rol !== 'admin') {
+          // Redirigir al dashboard si la ruta requiere admin y el usuario no es admin
+          console.warn('Acceso denegado: Se requiere rol de administrador');
+          next('/dashboard');
+          return;
+        }
+      }
+    } catch (error) {
+      console.error('Error en el guard de navegación:', error);
+      // En caso de error, redirigir al login
+      if (requiresAuth) {
+        next('/login');
+        return;
+      }
+    }
   }
+
+  // Si intenta ir al login y ya está autenticado, redirigir al dashboard
+  if (to.path === '/login') {
+    try {
+      const isAuthenticated = await authService.isAuthenticatedAsync();
+      if (isAuthenticated) {
+        next('/dashboard');
+        return;
+      }
+    } catch (error) {
+      // Si hay error, permitir acceso al login
+      console.error('Error al verificar autenticación:', error);
+    }
+  }
+
+  // Permitir navegación
+  next();
 });
 
 export default router;

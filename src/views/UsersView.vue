@@ -17,9 +17,12 @@
 
     <!-- Alertas -->
     <transition name="fade">
-      <div v-if="error" class="alert alert-error">
+      <div v-if="error" class="alert alert-error" style="white-space: pre-line;">
         <i class="bi bi-exclamation-circle-fill"></i>
-        <span>{{ error }}</span>
+        <div style="flex: 1;">
+          <strong>Error:</strong><br>
+          <span>{{ error }}</span>
+        </div>
         <button class="alert-close" @click="error = null">
           <i class="bi bi-x"></i>
         </button>
@@ -38,11 +41,17 @@
       <div v-if="loading" class="loading-state">
         <div class="spinner"></div>
         <p>Cargando usuarios...</p>
+        <p style="margin-top: 10px; font-size: 0.9em; color: #666;">
+          Si se queda cargando, ejecuta el script fix-rls-policies-complete.sql en Supabase
+        </p>
       </div>
 
-      <div v-else-if="users.length === 0" class="empty-state">
+      <div v-else-if="users.length === 0 && !error" class="empty-state">
         <i class="bi bi-people"></i>
         <p>No hay usuarios registrados</p>
+        <p style="margin-top: 10px; font-size: 0.9em; color: #666;">
+          Si esperabas ver usuarios, verifica las políticas RLS en Supabase
+        </p>
       </div>
 
       <table v-else class="users-table">
@@ -321,54 +330,147 @@ export default {
   async mounted() {
     // Verificar que el usuario sea administrador
     try {
+      console.log('🔍 Verificando permisos de administrador...');
       this.currentUser = await authService.getCurrentUserAsync() || authService.getCurrentUser();
       
+      if (!this.currentUser) {
+        console.error('❌ No se pudo obtener el usuario actual');
+        this.$router.push('/login');
+        return;
+      }
+      
+      console.log('✅ Usuario actual:', this.currentUser);
+      console.log('📋 Rol del usuario:', this.currentUser.rol);
+      
       if (!this.isAdmin) {
-        this.$router.push('/dashboard');
+        console.warn('⚠️ El usuario no es administrador, redirigiendo al dashboard');
+        this.error = 'No tienes permisos para acceder a esta sección. Se requiere rol de administrador.';
+        setTimeout(() => {
+          this.$router.push('/dashboard');
+        }, 2000);
         return;
       }
 
+      console.log('✅ Permisos de administrador verificados');
       await this.loadUsers();
     } catch (error) {
-      console.error('Error al verificar permisos:', error);
-      this.error = 'Error al verificar permisos de administrador';
-      this.$router.push('/dashboard');
+      console.error('❌ Error al verificar permisos:', error);
+      this.error = 'Error al verificar permisos de administrador. Por favor, inicia sesión nuevamente.';
+      setTimeout(() => {
+        this.$router.push('/dashboard');
+      }, 2000);
     }
   },
   methods: {
     async loadUsers() {
       this.loading = true;
       this.error = null;
+      this.successMessage = null;
 
       try {
+        console.log('🔍 Cargando usuarios...');
         this.users = await userService.getAllUsers();
+        console.log(`✅ ${this.users.length} usuarios cargados`);
+        
+        if (this.users.length === 0) {
+          console.log('⚠️ No hay usuarios en la base de datos o no se pudieron cargar');
+          this.error = 'No se encontraron usuarios. Verifica que las políticas RLS estén configuradas correctamente en Supabase.';
+        }
       } catch (error) {
-        console.error('Error al cargar usuarios:', error);
+        console.error('❌ Error al cargar usuarios:', error);
         this.error = error.message || 'Error al cargar usuarios';
+        
+        // Proporcionar mensajes más específicos y útiles
+        if (error.message && error.message.includes('permisos')) {
+          this.error += '\n\nSolución: Ejecuta el script fix-rls-policies-complete.sql en el SQL Editor de Supabase.';
+        } else if (error.message && error.message.includes('Timeout')) {
+          this.error += '\n\nPosibles causas:\n1. Problemas de conexión a Supabase\n2. Políticas RLS mal configuradas\n3. La función is_admin() no funciona correctamente\n\nSolución: Ejecuta el script fix-rls-policies-complete.sql en el SQL Editor de Supabase.';
+        } else if (error.message && error.message.includes('RLS')) {
+          this.error += '\n\nSolución: Ejecuta el script fix-rls-policies-complete.sql en el SQL Editor de Supabase para corregir las políticas RLS.';
+        }
+        
+        // Establecer lista vacía para evitar errores en el template
+        this.users = [];
       } finally {
+        // Asegurar que el loading se detenga siempre
         this.loading = false;
+        console.log('✅ Loading detenido');
       }
     },
 
     async createUser() {
+      // Validar formulario antes de enviar
+      if (!this.isFormValid) {
+        this.error = 'Por favor, completa todos los campos requeridos correctamente';
+        return;
+      }
+
       this.loading = true;
       this.error = null;
       this.successMessage = null;
 
       try {
-        await userService.createUser(this.formData);
-        this.successMessage = 'Usuario creado exitosamente';
+        console.log('🔄 Creando usuario:', this.formData.email);
+        const newUser = await userService.createUser(this.formData);
+        console.log('✅ Usuario creado:', newUser);
+        
+        this.successMessage = `Usuario "${newUser.nombre || newUser.email}" creado exitosamente`;
         this.closeModal();
+        
+        // Esperar un momento para que la sesión se restaure y el usuario se cree completamente
+        await new Promise(resolve => setTimeout(resolve, 500));
+        
+        // Verificar que la sesión del administrador sigue activa
+        try {
+          const updatedUser = await authService.getCurrentUserAsync();
+          if (updatedUser) {
+            // Si el usuario cambió y ya no es admin, mostrar error
+            if (updatedUser.id !== this.currentUser?.id && updatedUser.rol !== 'admin') {
+              this.error = 'La sesión cambió. Por favor, recarga la página.';
+              this.successMessage = null;
+              setTimeout(() => {
+                window.location.reload();
+              }, 2000);
+              return;
+            }
+            // Actualizar el usuario actual
+            this.currentUser = updatedUser;
+          }
+        } catch (sessionError) {
+          console.error('Error al verificar sesión:', sessionError);
+          // Continuar de todas formas - el usuario fue creado
+        }
+        
+        // Recargar la lista de usuarios
+        console.log('🔄 Recargando lista de usuarios...');
         await this.loadUsers();
         
-        // Limpiar mensaje después de 3 segundos
+        // Verificar que el nuevo usuario está en la lista
+        const newUserInList = this.users.find(u => 
+          u.id === newUser.id || 
+          u.email === newUser.email ||
+          (u.email && newUser.email && u.email.toLowerCase() === newUser.email.toLowerCase())
+        );
+        
+        if (!newUserInList) {
+          console.warn('⚠️ El nuevo usuario no apareció en la lista inmediatamente');
+          // Esperar un poco más y recargar nuevamente
+          await new Promise(resolve => setTimeout(resolve, 1000));
+          await this.loadUsers();
+        }
+        
+        // Limpiar mensaje después de 5 segundos
         setTimeout(() => {
           this.successMessage = null;
-        }, 3000);
+        }, 5000);
       } catch (error) {
-        console.error('Error al crear usuario:', error);
+        console.error('❌ Error al crear usuario:', error);
         this.error = error.message || 'Error al crear usuario';
+        
+        // Mantener el modal abierto para que el usuario pueda corregir los errores
+        // No cerrar el modal en caso de error
       } finally {
+        // Asegurar que el loading se detenga siempre
         this.loading = false;
       }
     },
@@ -386,28 +488,54 @@ export default {
     },
 
     async updateUser() {
+      // Validar formulario antes de enviar
+      if (!this.isFormValid) {
+        this.error = 'Por favor, completa todos los campos requeridos correctamente';
+        return;
+      }
+
       this.loading = true;
       this.error = null;
       this.successMessage = null;
 
       try {
-        await userService.updateUser(this.userToDelete.id, {
+        console.log('🔄 Actualizando usuario:', this.userToDelete.id);
+        const updatedUser = await userService.updateUser(this.userToDelete.id, {
           nombre: this.formData.nombre,
           username: this.formData.username,
           email: this.formData.email,
           rol: this.formData.rol
         });
-        this.successMessage = 'Usuario actualizado exitosamente';
+        console.log('✅ Usuario actualizado:', updatedUser);
+        
+        this.successMessage = `Usuario "${updatedUser.nombre || updatedUser.email}" actualizado exitosamente`;
         this.closeModal();
+        
+        // Recargar la lista de usuarios
         await this.loadUsers();
         
-        // Limpiar mensaje después de 3 segundos
+        // Si el usuario actualizado es el usuario actual, refrescar su sesión
+        if (this.currentUser && this.currentUser.id === updatedUser.id) {
+          console.log('⚠️ El usuario actualizado es el usuario actual, refrescando sesión...');
+          try {
+            await authService.refreshUser();
+            // Recargar la página para actualizar el estado
+            window.location.reload();
+          } catch (refreshError) {
+            console.error('Error al refrescar sesión:', refreshError);
+          }
+        }
+        
+        // Limpiar mensaje después de 5 segundos
         setTimeout(() => {
           this.successMessage = null;
-        }, 3000);
+        }, 5000);
       } catch (error) {
-        console.error('Error al actualizar usuario:', error);
+        console.error('❌ Error al actualizar usuario:', error);
         this.error = error.message || 'Error al actualizar usuario';
+        
+        // Mantener el modal abierto para que el usuario pueda corregir los errores
+        // No cerrar el modal en caso de error
       } finally {
         this.loading = false;
       }
@@ -424,20 +552,29 @@ export default {
       this.successMessage = null;
 
       try {
+        const userToDeleteName = this.userToDelete.nombre || this.userToDelete.email;
+        console.log('🗑️ Eliminando usuario:', this.userToDelete.id, userToDeleteName);
+        
         await userService.deleteUser(this.userToDelete.id);
-        this.successMessage = 'Usuario eliminado exitosamente';
+        console.log('✅ Usuario eliminado:', this.userToDelete.id);
+        
+        this.successMessage = `Usuario "${userToDeleteName}" eliminado exitosamente`;
         this.showDeleteModal = false;
         this.userToDelete = null;
+        
+        // Recargar la lista de usuarios
         await this.loadUsers();
         
-        // Limpiar mensaje después de 3 segundos
+        // Limpiar mensaje después de 5 segundos
         setTimeout(() => {
           this.successMessage = null;
-        }, 3000);
+        }, 5000);
       } catch (error) {
-        console.error('Error al eliminar usuario:', error);
+        console.error('❌ Error al eliminar usuario:', error);
         this.error = error.message || 'Error al eliminar usuario';
-        this.showDeleteModal = false;
+        
+        // Mantener el modal abierto para que el usuario vea el error
+        // No cerrar el modal en caso de error
       } finally {
         this.loading = false;
       }
@@ -455,6 +592,7 @@ export default {
       };
       this.userToDelete = null;
       this.error = null;
+      this.showPassword = false;
     },
 
     getRolLabel(rol) {

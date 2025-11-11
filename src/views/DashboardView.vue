@@ -40,12 +40,28 @@ export default {
         return;
       }
       
-      // Obtener usuario actual
-      this.currentUser = await authService.getCurrentUserAsync() || authService.getCurrentUser();
+      // Obtener usuario actual - forzar actualización desde Supabase
+      this.currentUser = await authService.getCurrentUserAsync();
+      
+      // Si no se obtuvo de forma asíncrona, intentar desde localStorage
+      if (!this.currentUser) {
+        this.currentUser = authService.getCurrentUser();
+      }
       
       if (!this.currentUser) {
+        console.error('No se pudo obtener el usuario actual');
         this.$router.push('/login');
         return;
+      }
+      
+      // Log para debugging
+      console.log('✅ Usuario actual en Dashboard:', this.currentUser);
+      console.log('📋 Rol del usuario:', this.currentUser.rol);
+      
+      // Verificar si el rol necesita actualizarse
+      // Si el usuario tiene sesión activa, verificar que el rol esté actualizado
+      if (supabase && supabase.auth) {
+        this.verifyAndRefreshUserRole();
       }
     } catch (error) {
       console.error('Error al verificar autenticación:', error);
@@ -67,9 +83,14 @@ export default {
             this.currentUser = null;
             this.$router.push('/login');
           } else if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
-            // Actualizar usuario actual
+            // Actualizar usuario actual - forzar actualización desde Supabase
             try {
-              this.currentUser = await authService.getCurrentUserAsync() || authService.getCurrentUser();
+              this.currentUser = await authService.getCurrentUserAsync();
+              if (!this.currentUser) {
+                this.currentUser = authService.getCurrentUser();
+              }
+              console.log('Usuario actualizado después de cambio de autenticación:', this.currentUser);
+              console.log('Rol del usuario:', this.currentUser?.rol);
             } catch (error) {
               console.error('Error al obtener usuario después de autenticación:', error);
             }
@@ -114,6 +135,42 @@ export default {
       // En desktop, el sidebar siempre está visible
       if (window.innerWidth > 768) {
         this.sidebarVisible = true;
+      }
+    },
+    async verifyAndRefreshUserRole() {
+      try {
+        // Obtener usuario actualizado desde Supabase
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session || !session.user) return;
+        
+        const { data: userData, error } = await supabase
+          .from('users')
+          .select('rol')
+          .eq('email', session.user.email)
+          .maybeSingle();
+        
+        if (error || !userData) {
+          console.warn('⚠️ No se pudo verificar el rol del usuario:', error);
+          return;
+        }
+        
+        // Si el rol en Supabase es diferente al del estado actual, actualizar
+        if (this.currentUser && this.currentUser.rol !== userData.rol) {
+          console.warn('⚠️ El rol del usuario ha cambiado en Supabase');
+          console.warn('   Rol actual en app:', this.currentUser.rol);
+          console.warn('   Rol en Supabase:', userData.rol);
+          console.warn('   Actualizando usuario...');
+          
+          // Actualizar usuario
+          this.currentUser = await authService.getCurrentUserAsync();
+          
+          if (this.currentUser) {
+            console.log('✅ Usuario actualizado:', this.currentUser);
+            console.log('📋 Nuevo rol:', this.currentUser.rol);
+          }
+        }
+      } catch (error) {
+        console.error('❌ Error al verificar rol del usuario:', error);
       }
     }
   }

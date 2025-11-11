@@ -62,33 +62,84 @@ class SupabaseAuthService {
       }
 
       // Obtener información adicional del usuario desde la tabla 'users'
-      const { data: userData, error: userError } = await supabase
+      // Intentar primero por ID (más eficiente y evita problemas de RLS)
+      let userData = null;
+      let userError = null;
+      
+      // Primero intentar por ID
+      const { data: userDataById, error: errorById } = await supabase
         .from('users')
         .select('*')
-        .eq('email', authData.user.email)
-        .single();
+        .eq('id', authData.user.id)
+        .maybeSingle();
 
-      if (userError) {
-        console.error('Error al obtener datos del usuario:', userError);
+      if (!errorById && userDataById) {
+        userData = userDataById;
+        console.log('✅ Usuario obtenido por ID durante login');
+      } else {
+        // Si falla por ID, intentar por email
+        console.warn('⚠️ No se pudo obtener usuario por ID durante login, intentando por email...');
+        const { data: userDataByEmail, error: errorByEmail } = await supabase
+          .from('users')
+          .select('*')
+          .eq('email', authData.user.email)
+          .maybeSingle();
         
-        // Si no existe en la tabla users, crear un usuario básico con los datos de auth
-        const basicUser = {
-          id: authData.user.id,
-          email: authData.user.email,
-          username: authData.user.email?.split('@')[0] || 'Usuario',
-          nombre: authData.user.user_metadata?.nombre || 
-                  authData.user.user_metadata?.full_name || 
-                  authData.user.email?.split('@')[0] || 'Usuario',
-          rol: authData.user.user_metadata?.rol || 'usuario'
-        };
+        if (!errorByEmail && userDataByEmail) {
+          userData = userDataByEmail;
+          console.log('✅ Usuario obtenido por email durante login');
+        } else {
+          userError = errorByEmail || errorById;
+          console.error('❌ Error al obtener datos del usuario desde tabla users:', userError);
+          
+          // Si hay un error 500 o de permisos, esperar un poco y reintentar
+          await new Promise(resolve => setTimeout(resolve, 1000));
+          
+          // Reintentar por ID
+          const { data: retryUserData, error: retryError } = await supabase
+            .from('users')
+            .select('*')
+            .eq('id', authData.user.id)
+            .maybeSingle();
+          
+          if (!retryError && retryUserData) {
+            userData = retryUserData;
+            console.log('✅ Usuario obtenido en segundo intento');
+          } else if (retryError || !retryUserData) {
+            console.warn('⚠️ Usuario aún no existe en la tabla users después de esperar');
+            // Si no existe en la tabla users, crear un usuario básico con los datos de auth
+            const basicUser = {
+              id: authData.user.id,
+              email: authData.user.email,
+              username: authData.user.email?.split('@')[0] || 'Usuario',
+              nombre: authData.user.user_metadata?.nombre || 
+                      authData.user.user_metadata?.full_name || 
+                      authData.user.email?.split('@')[0] || 'Usuario',
+              rol: authData.user.user_metadata?.rol || 'usuario'
+            };
 
-        // Guardar sesión en localStorage
-        localStorage.setItem('currentUser', JSON.stringify(basicUser));
-        if (authData.session) {
-          localStorage.setItem('supabaseSession', JSON.stringify(authData.session));
+            console.log('⚠️ Usuario básico creado desde auth (sin tabla users):', basicUser);
+
+            // Guardar sesión en localStorage
+            localStorage.setItem('currentUser', JSON.stringify(basicUser));
+            if (authData.session) {
+              localStorage.setItem('supabaseSession', JSON.stringify(authData.session));
+            }
+
+            return basicUser;
+          }
         }
+      }
 
-        return basicUser;
+      // Verificar que el rol existe
+      if (!userData || !userData.rol || userData.rol === '') {
+        console.warn('Usuario encontrado pero sin rol asignado. Email:', userData?.email);
+        console.warn('Datos del usuario:', userData);
+        // Si no tiene rol, esto es un problema que debe solucionarse en Supabase
+        // Pero por ahora, usar 'usuario' como fallback para evitar errores
+        if (!userData.rol) {
+          userData.rol = 'usuario';
+        }
       }
 
       // Construir objeto de usuario
@@ -96,9 +147,11 @@ class SupabaseAuthService {
         id: userData.id,
         username: userData.username || userData.email?.split('@')[0],
         email: userData.email,
-        nombre: userData.nombre,
-        rol: userData.rol || 'usuario'
+        nombre: userData.nombre || userData.email?.split('@')[0] || 'Usuario',
+        rol: userData.rol || 'usuario' // Solo usar 'usuario' si realmente no hay rol
       };
+
+      console.log('Usuario obtenido desde tabla users:', user);
 
       // Guardar sesión en localStorage
       localStorage.setItem('currentUser', JSON.stringify(user));
@@ -182,48 +235,133 @@ class SupabaseAuthService {
   async getCurrentUser() {
     try {
       // Obtener sesión de Supabase
-      const { data: { session }, error } = await supabase.auth.getSession();
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
       
-      if (error || !session) {
+      if (sessionError || !session || !session.user) {
+        console.warn('No hay sesión activa en Supabase:', sessionError);
         // Intentar obtener del localStorage como fallback
         const userStr = localStorage.getItem('currentUser');
         if (userStr) {
-          return JSON.parse(userStr);
+          try {
+            const user = JSON.parse(userStr);
+            console.log('Usuario obtenido desde localStorage:', user);
+            return user;
+          } catch (parseError) {
+            console.error('Error al parsear usuario desde localStorage:', parseError);
+          }
         }
         return null;
       }
 
+      console.log('Sesión activa encontrada, email:', session.user.email);
+
       // Obtener información del usuario desde la tabla users
-      const { data: userData, error: userError } = await supabase
+      // Intentar primero por ID (más eficiente y evita problemas de RLS)
+      let userData = null;
+      let userError = null;
+      
+      // Primero intentar por ID (más directo y evita problemas de RLS)
+      const { data: userDataById, error: errorById } = await supabase
         .from('users')
         .select('*')
-        .eq('email', session.user.email)
-        .single();
+        .eq('id', session.user.id)
+        .maybeSingle();
+      
+      if (!errorById && userDataById) {
+        userData = userDataById;
+        console.log('✅ Usuario obtenido por ID desde Supabase');
+      } else {
+        // Si falla por ID, intentar por email
+        console.warn('⚠️ No se pudo obtener usuario por ID, intentando por email...');
+        const { data: userDataByEmail, error: errorByEmail } = await supabase
+          .from('users')
+          .select('*')
+          .eq('email', session.user.email)
+          .maybeSingle();
+        
+        if (!errorByEmail && userDataByEmail) {
+          userData = userDataByEmail;
+          console.log('✅ Usuario obtenido por email desde Supabase');
+        } else {
+          userError = errorByEmail || errorById;
+          console.error('❌ Error al consultar tabla users:', userError);
+          console.error('   Error por ID:', errorById);
+          console.error('   Error por email:', errorByEmail);
+        }
+      }
 
       if (userError) {
-        // Si no existe en users, devolver datos básicos de Auth
+        // Si hay un error 500 o de permisos, intentar obtener del localStorage
+        const userStr = localStorage.getItem('currentUser');
+        if (userStr) {
+          try {
+            const cachedUser = JSON.parse(userStr);
+            console.warn('⚠️ Usando usuario del cache debido a error en Supabase');
+            console.warn('   Error:', userError.message || userError);
+            return cachedUser;
+          } catch (parseError) {
+            console.error('Error al parsear usuario desde localStorage:', parseError);
+          }
+        }
+        // Si no hay usuario en la tabla y no hay en localStorage, devolver null
+        return null;
+      }
+
+      if (!userData) {
+        console.warn('Usuario no encontrado en la tabla users para email:', session.user.email);
+        // Usuario no existe en la tabla users, pero tiene sesión activa
+        // Esto puede pasar si el trigger no se ejecutó correctamente
+        // Intentar obtener del localStorage
+        const userStr = localStorage.getItem('currentUser');
+        if (userStr) {
+          try {
+            return JSON.parse(userStr);
+          } catch (parseError) {
+            console.error('Error al parsear usuario desde localStorage:', parseError);
+          }
+        }
+        // Devolver datos básicos
         return {
           id: session.user.id,
           email: session.user.email,
-          nombre: session.user.email?.split('@')[0] || 'Usuario',
-          rol: 'usuario'
+          nombre: session.user.user_metadata?.nombre || session.user.email?.split('@')[0] || 'Usuario',
+          username: session.user.user_metadata?.username || session.user.email?.split('@')[0],
+          rol: session.user.user_metadata?.rol || 'usuario'
         };
+      }
+
+      // Verificar que el rol existe y no es null/undefined
+      if (!userData.rol || userData.rol === '') {
+        console.warn('Usuario encontrado pero sin rol asignado. Email:', userData.email);
+        // Si no tiene rol, usar 'usuario' como predeterminado, pero loguear el problema
+        userData.rol = 'usuario';
       }
 
       const user = {
         id: userData.id,
         username: userData.username || userData.email?.split('@')[0],
         email: userData.email,
-        nombre: userData.nombre,
-        rol: userData.rol || 'usuario'
+        nombre: userData.nombre || userData.email?.split('@')[0] || 'Usuario',
+        rol: userData.rol // Ya verificamos que existe
       };
 
-      // Actualizar localStorage
+      console.log('Usuario obtenido desde Supabase:', user);
+
+      // Actualizar localStorage con los datos más recientes
       localStorage.setItem('currentUser', JSON.stringify(user));
       
       return user;
     } catch (error) {
       console.error('Error al obtener usuario actual:', error);
+      // En caso de error, intentar obtener del localStorage
+      const userStr = localStorage.getItem('currentUser');
+      if (userStr) {
+        try {
+          return JSON.parse(userStr);
+        } catch (parseError) {
+          console.error('Error al parsear usuario desde localStorage:', parseError);
+        }
+      }
       return null;
     }
   }
@@ -365,6 +503,32 @@ class SupabaseAuthService {
     } catch (error) {
       console.error('Error al actualizar contraseña:', error);
       throw error;
+    }
+  }
+
+  /**
+   * Forzar actualización del usuario desde Supabase
+   * Útil cuando se cambia el rol en la base de datos
+   * @returns {Promise<Object|null>} Usuario actualizado o null
+   */
+  async refreshUser() {
+    try {
+      // Limpiar localStorage para forzar actualización
+      localStorage.removeItem('currentUser');
+      
+      // Obtener usuario actualizado desde Supabase
+      const user = await this.getCurrentUser();
+      
+      if (user) {
+        console.log('Usuario refrescado desde Supabase:', user);
+        // Actualizar localStorage con los datos actualizados
+        localStorage.setItem('currentUser', JSON.stringify(user));
+      }
+      
+      return user;
+    } catch (error) {
+      console.error('Error al refrescar usuario:', error);
+      return null;
     }
   }
 }

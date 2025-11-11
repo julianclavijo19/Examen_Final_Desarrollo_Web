@@ -250,6 +250,25 @@ class AuthService {
       return null;
     }
   }
+
+  /**
+   * Forzar actualización del usuario desde Supabase
+   * Útil cuando se cambia el rol en la base de datos
+   * @returns {Promise<Object|null>} Usuario actualizado o null
+   */
+  async refreshUser() {
+    if (USE_SUPABASE) {
+      try {
+        return await supabaseAuth.refreshUser();
+      } catch (error) {
+        console.error('Error al refrescar usuario:', error);
+        return null;
+      }
+    } else {
+      // En modo local, simplemente devolver el usuario actual
+      return this.getCurrentUser();
+    }
+  }
 }
 
 // Exportar instancia única
