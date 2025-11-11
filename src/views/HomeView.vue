@@ -78,6 +78,17 @@
             </div>
             <i class="bi bi-arrow-right action-arrow"></i>
           </router-link>
+
+          <router-link to="/dashboard/estadisticas" class="action-item">
+            <div class="action-icon statistics">
+              <i class="bi bi-bar-chart"></i>
+            </div>
+            <div class="action-info">
+              <h4>Estadísticas</h4>
+              <p>Análisis y reportes</p>
+            </div>
+            <i class="bi bi-arrow-right action-arrow"></i>
+          </router-link>
         </div>
       </div>
 
@@ -507,6 +518,12 @@ export default {
   background: #dbeafe;
   border: 1px solid #bfdbfe;
   color: #3b82f6;
+}
+
+.action-icon.statistics {
+  background: #f3e8ff;
+  border: 1px solid #e9d5ff;
+  color: #a855f7;
 }
 
 .action-info {

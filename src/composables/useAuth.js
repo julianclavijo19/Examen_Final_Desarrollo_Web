@@ -18,7 +18,7 @@ export function useAuth() {
     error.value = null;
     
     try {
-      const user = authService.login(username, password);
+      const user = await authService.login(username, password);
       if (user) {
         currentUser.value = user;
         return { success: true, user };
@@ -34,8 +34,8 @@ export function useAuth() {
     }
   };
 
-  const logout = () => {
-    authService.logout();
+  const logout = async () => {
+    await authService.logout();
     currentUser.value = null;
     error.value = null;
   };

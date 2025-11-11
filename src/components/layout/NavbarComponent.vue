@@ -1,6 +1,9 @@
 <template>
   <nav class="navbar-minimal">
     <div class="container-fluid">
+      <button class="menu-toggle-btn" @click="toggleSidebar" title="Toggle Menu">
+        <i class="bi bi-list"></i>
+      </button>
       <div class="navbar-brand">
         <i class="bi bi-controller"></i>
         <span>GamerHub Pro</span>
@@ -180,8 +183,11 @@ export default {
       return this.currentUser && this.currentUser.rol === 'admin';
     }
   },
-  emits: ['logout'],
+  emits: ['logout', 'toggle-sidebar'],
   methods: {
+    toggleSidebar() {
+      this.$emit('toggle-sidebar');
+    },
     toggleMenu() {
       this.showMenu = !this.showMenu;
       if (this.showMenu) {
@@ -798,7 +804,36 @@ export default {
   }
 }
 
+.menu-toggle-btn {
+  display: none;
+  background: transparent;
+  border: 1px solid #dee2e6;
+  border-radius: 8px;
+  width: 40px;
+  height: 40px;
+  align-items: center;
+  justify-content: center;
+  color: #495057;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  margin-right: 1rem;
+}
+
+.menu-toggle-btn:hover {
+  background: #f8f9fa;
+  border-color: #6366f1;
+  color: #6366f1;
+}
+
+.menu-toggle-btn i {
+  font-size: 1.25rem;
+}
+
 @media (max-width: 768px) {
+  .menu-toggle-btn {
+    display: flex;
+  }
+
   .navbar-minimal {
     padding: 0.75rem 1rem;
     height: 60px;

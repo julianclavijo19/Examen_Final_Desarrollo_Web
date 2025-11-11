@@ -1,5 +1,6 @@
 <template>
-  <aside class="sidebar-minimal">
+  <aside class="sidebar-minimal" :class="{ 'show': isVisible }">
+    <div class="sidebar-overlay" @click="closeSidebar" v-if="isVisible"></div>
     <nav class="sidebar-nav">
       <router-link 
         to="/dashboard" 
@@ -45,6 +46,16 @@
         <i class="bi bi-bar-chart"></i>
         <span>Estadísticas</span>
       </router-link>
+
+      <router-link 
+        v-if="currentUser && currentUser.rol === 'admin'"
+        to="/dashboard/usuarios" 
+        class="nav-item"
+        active-class="active"
+      >
+        <i class="bi bi-person-gear"></i>
+        <span>Gestión de Usuarios</span>
+      </router-link>
     </nav>
   </aside>
 </template>
@@ -56,6 +67,16 @@ export default {
     currentUser: {
       type: Object,
       default: null
+    },
+    isVisible: {
+      type: Boolean,
+      default: false
+    }
+  },
+  emits: ['close'],
+  methods: {
+    closeSidebar() {
+      this.$emit('close');
     }
   }
 }
@@ -73,6 +94,8 @@ export default {
   padding: 2rem 0;
   z-index: 900;
   box-shadow: 2px 0 8px rgba(0, 0, 0, 0.08);
+  transition: transform 0.3s ease;
+  transform: translateX(0);
 }
 
 .sidebar-nav {
@@ -145,16 +168,52 @@ export default {
   transform: scale(1.1);
 }
 
+.sidebar-overlay {
+  display: none;
+}
+
 @media (max-width: 768px) {
+  .sidebar-overlay {
+    display: block;
+    position: fixed;
+    top: 60px;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 899;
+    animation: fadeIn 0.3s ease;
+  }
+
   .sidebar-minimal {
     top: 60px;
     height: calc(100vh - 60px);
     transform: translateX(-100%);
-    transition: transform 0.3s;
+    transition: transform 0.3s ease;
+    z-index: 900;
   }
   
   .sidebar-minimal.show {
     transform: translateX(0);
+  }
+}
+
+@media (min-width: 769px) {
+  .sidebar-minimal {
+    transform: translateX(0) !important;
+  }
+  
+  .sidebar-overlay {
+    display: none !important;
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
   }
 }
 </style>

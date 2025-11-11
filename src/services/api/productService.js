@@ -8,12 +8,19 @@ class ProductService {
   /**
    * Obtener todos los productos
    * @param {number} limit - Límite de productos a retornar
-   * @returns {Promise} Lista de productos
+   * @returns {Promise} Lista de productos filtrados por categorías de tecnología
    */
   async getAllProducts(limit = 100) {
     try {
       const response = await apiClient.get(`/products?limit=${limit}`);
-      return response.data.products;
+      const allProducts = response.data.products;
+      
+      // Filtrar solo productos de tecnología
+      const techProducts = allProducts.filter(product => 
+        GAMING_CATEGORIES.includes(product.category)
+      );
+      
+      return techProducts;
     } catch (error) {
       console.error('Error al obtener productos:', error);
       throw error;
@@ -62,12 +69,19 @@ class ProductService {
   /**
    * Buscar productos
    * @param {string} query - Término de búsqueda
-   * @returns {Promise} Lista de productos encontrados
+   * @returns {Promise} Lista de productos encontrados filtrados por categorías de tecnología
    */
   async searchProducts(query) {
     try {
       const response = await apiClient.get(`/products/search?q=${query}`);
-      return response.data.products;
+      const allProducts = response.data.products;
+      
+      // Filtrar solo productos de tecnología
+      const techProducts = allProducts.filter(product => 
+        GAMING_CATEGORIES.includes(product.category)
+      );
+      
+      return techProducts;
     } catch (error) {
       console.error('Error al buscar productos:', error);
       throw error;

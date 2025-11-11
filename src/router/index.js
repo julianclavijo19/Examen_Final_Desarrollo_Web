@@ -81,6 +81,16 @@ const routes = [
           requiresAuth: true,
           title: 'Estadísticas'
         }
+      },
+      {
+        path: 'usuarios',
+        name: 'Users',
+        component: () => import('../views/UsersView.vue'),
+        meta: {
+          requiresAuth: true,
+          requiresAdmin: true,
+          title: 'Gestión de Usuarios'
+        }
       }
     ]
   },
@@ -112,7 +122,10 @@ const router = createRouter({
  */
 router.beforeEach((to, from, next) => {
   const requiresAuth = to.matched.some(record => record.meta.requiresAuth);
+  const requiresAdmin = to.matched.some(record => record.meta.requiresAdmin);
   const isAuthenticated = authService.isAuthenticated();
+  const currentUser = authService.getCurrentUser();
+  const isAdmin = currentUser && currentUser.rol === 'admin';
 
   // Actualizar título de la página
   document.title = `GamerHub Pro - ${to.meta.title || 'Dashboard'}`;
@@ -120,6 +133,9 @@ router.beforeEach((to, from, next) => {
   if (requiresAuth && !isAuthenticated) {
     // Redirigir al login si la ruta requiere autenticación y no está autenticado
     next('/login');
+  } else if (requiresAdmin && !isAdmin) {
+    // Redirigir al dashboard si la ruta requiere admin y el usuario no es admin
+    next('/dashboard');
   } else if (to.path === '/login' && isAuthenticated) {
     // Redirigir al dashboard si ya está autenticado e intenta ir al login
     next('/dashboard');

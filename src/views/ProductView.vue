@@ -2,7 +2,11 @@
   <div class="products-minimal">
     <div class="page-header">
       <h1>Productos</h1>
-      <button class="btn-primary" @click="showCreateModal">
+      <button 
+        v-if="isAdmin" 
+        class="btn-primary" 
+        @click="showCreateModal"
+      >
         <i class="bi bi-plus-lg"></i>
         Nuevo Producto
       </button>
@@ -91,10 +95,20 @@
                   <button class="action-btn view" @click="viewProduct(product)" title="Ver">
                     <i class="bi bi-eye"></i>
                   </button>
-                  <button class="action-btn edit" @click="editProduct(product)" title="Editar">
+                  <button 
+                    v-if="isAdmin" 
+                    class="action-btn edit" 
+                    @click="editProduct(product)" 
+                    title="Editar"
+                  >
                     <i class="bi bi-pencil"></i>
                   </button>
-                  <button class="action-btn delete" @click="confirmDelete(product)" title="Eliminar">
+                  <button 
+                    v-if="isAdmin" 
+                    class="action-btn delete" 
+                    @click="confirmDelete(product)" 
+                    title="Eliminar"
+                  >
                     <i class="bi bi-trash"></i>
                   </button>
                 </div>
@@ -232,6 +246,7 @@
 
 <script>
 import { productService, categoryService } from '../services/api';
+import authService from '../services/authService';
 
 export default {
   name: 'ProductView',
@@ -248,10 +263,14 @@ export default {
       showModal: false,
       showViewModal: false,
       currentProduct: this.getEmptyProduct(),
-      viewingProduct: null
+      viewingProduct: null,
+      currentUser: null
     };
   },
   computed: {
+    isAdmin() {
+      return this.currentUser && this.currentUser.rol === 'admin';
+    },
     filteredProducts() {
       let filtered = this.products;
 
@@ -280,6 +299,9 @@ export default {
     }
   },
   async mounted() {
+    // Obtener usuario actual
+    this.currentUser = authService.getCurrentUser();
+    
     await this.loadProducts();
     await this.loadCategories();
     
