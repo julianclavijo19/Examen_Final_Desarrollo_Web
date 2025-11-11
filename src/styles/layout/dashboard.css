@@ -1,0 +1,25 @@
+.dashboard-minimal {
+  min-height: 100vh;
+  background: var(--color-bg-primary);
+  display: flex;
+  flex-direction: column;
+}
+
+.dashboard-minimal .main-content {
+  margin-left: 240px;
+  margin-top: 70px;
+  min-height: calc(100vh - 70px);
+  display: flex;
+  flex-direction: column;
+  background: var(--color-bg-secondary);
+  transition: margin-left var(--transition-base);
+}
+
+@media (max-width: 768px) {
+  .dashboard-minimal .main-content {
+    margin-left: 0;
+    margin-top: 60px;
+    min-height: calc(100vh - 60px);
+  }
+}
+
