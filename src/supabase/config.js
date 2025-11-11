@@ -23,8 +23,10 @@ export const SUPABASE_CONFIG = {
 if (!SUPABASE_CONFIG.url || !SUPABASE_CONFIG.anonKey) {
   console.warn(
     '⚠️ Variables de entorno de Supabase no configuradas.\n' +
-    'Por favor, configura VITE_SUPABASE_URL y VITE_SUPABASE_ANON_KEY en tu archivo .env'
+    'Por favor, configura VITE_SUPABASE_URL y VITE_SUPABASE_ANON_KEY en las variables de entorno de Vercel'
   );
+} else {
+  console.log('✅ Configuración de Supabase cargada correctamente');
 }
 
 export default SUPABASE_CONFIG;

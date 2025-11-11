@@ -156,3 +156,12 @@ if (typeof window !== 'undefined') {
 
 // Log de inicio
 console.log('✅ Aplicación GamerHub Pro iniciada correctamente');
+
+// Manejo de errores global
+window.addEventListener('error', (event) => {
+  console.error('❌ Error global:', event.error);
+});
+
+window.addEventListener('unhandledrejection', (event) => {
+  console.error('❌ Promise rechazada:', event.reason);
+});
