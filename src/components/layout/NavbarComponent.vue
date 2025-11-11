@@ -56,14 +56,14 @@
           </div>
         </div>
 
-        <div class="user-menu" v-if="currentUser">
+        <div class="user-menu" v-if="currentUser && currentUser.email">
           <button class="user-btn" @click="toggleMenu">
             <div class="user-avatar">
               <i class="bi bi-person-circle"></i>
             </div>
             <div class="user-info">
-              <span class="user-name">{{ currentUser.nombre }}</span>
-              <span class="user-role-badge">{{ getRoleName(currentUser.rol) }}</span>
+              <span class="user-name">{{ currentUser.nombre || currentUser.email?.split('@')[0] || 'Usuario' }}</span>
+              <span class="user-role-badge">{{ getRoleName(currentUser.rol || 'usuario') }}</span>
             </div>
             <i class="bi bi-chevron-down arrow-icon"></i>
           </button>

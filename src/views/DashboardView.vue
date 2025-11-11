@@ -32,24 +32,31 @@ export default {
     };
   },
   async mounted() {
+    console.log('🚀 DashboardView montado, verificando autenticación...');
+    
     // Verificar autenticación de forma asíncrona
     try {
       const isAuth = await authService.isAuthenticatedAsync();
+      console.log('🔐 Estado de autenticación:', isAuth);
+      
       if (!isAuth) {
+        console.warn('⚠️ Usuario no autenticado, redirigiendo a login');
         this.$router.push('/login');
         return;
       }
       
       // Obtener usuario actual - forzar actualización desde Supabase
+      console.log('👤 Obteniendo usuario actual...');
       this.currentUser = await authService.getCurrentUserAsync();
       
       // Si no se obtuvo de forma asíncrona, intentar desde localStorage
       if (!this.currentUser) {
+        console.log('⚠️ No se obtuvo usuario de forma asíncrona, intentando desde localStorage...');
         this.currentUser = authService.getCurrentUser();
       }
       
       if (!this.currentUser) {
-        console.error('No se pudo obtener el usuario actual');
+        console.error('❌ No se pudo obtener el usuario actual');
         this.$router.push('/login');
         return;
       }
@@ -57,6 +64,7 @@ export default {
       // Log para debugging
       console.log('✅ Usuario actual en Dashboard:', this.currentUser);
       console.log('📋 Rol del usuario:', this.currentUser.rol);
+      console.log('📧 Email del usuario:', this.currentUser.email);
       
       // Verificar si el rol necesita actualizarse
       // Si el usuario tiene sesión activa, verificar que el rol esté actualizado
@@ -64,7 +72,7 @@ export default {
         this.verifyAndRefreshUserRole();
       }
     } catch (error) {
-      console.error('Error al verificar autenticación:', error);
+      console.error('❌ Error al verificar autenticación en DashboardView:', error);
       this.$router.push('/login');
       return;
     }
