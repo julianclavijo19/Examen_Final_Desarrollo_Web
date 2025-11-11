@@ -58,8 +58,9 @@ if (document.readyState === 'loading') {
 
 // Funciones de utilidad para la consola del navegador (solo si Supabase está configurado)
 if (typeof window !== 'undefined') {
-  // Importar supabase solo cuando se necesite
-  import('./supabase/index.js').then(({ supabase, isSupabaseConfigured }) => {
+  // Importar supabase solo cuando se necesite (lazy load)
+  import('./supabase/index.js').then((module) => {
+    const { supabase, isSupabaseConfigured } = module;
     if (isSupabaseConfigured && supabase) {
       // Función para forzar actualización del usuario
       window.forceRefreshUser = async function() {
