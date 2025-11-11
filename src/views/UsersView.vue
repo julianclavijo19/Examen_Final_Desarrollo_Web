@@ -547,23 +547,51 @@ export default {
     },
 
     async deleteUser() {
+      if (!this.userToDelete) {
+        console.error('❌ No hay usuario seleccionado para eliminar');
+        this.error = 'No hay usuario seleccionado para eliminar';
+        return;
+      }
+
       this.loading = true;
       this.error = null;
       this.successMessage = null;
 
       try {
+        const userToDeleteId = this.userToDelete.id;
         const userToDeleteName = this.userToDelete.nombre || this.userToDelete.email;
-        console.log('🗑️ Eliminando usuario:', this.userToDelete.id, userToDeleteName);
         
-        await userService.deleteUser(this.userToDelete.id);
-        console.log('✅ Usuario eliminado:', this.userToDelete.id);
+        console.log('🗑️ Iniciando eliminación de usuario:', userToDeleteId, userToDeleteName);
+        
+        // Agregar timeout para evitar que se quede cargando indefinidamente
+        const deletePromise = userService.deleteUser(userToDeleteId);
+        const timeoutPromise = new Promise((_, reject) => {
+          setTimeout(() => reject(new Error('Timeout: La eliminación tardó demasiado tiempo')), 10000);
+        });
+        
+        await Promise.race([deletePromise, timeoutPromise]);
+        
+        console.log('✅ Usuario eliminado exitosamente:', userToDeleteId);
         
         this.successMessage = `Usuario "${userToDeleteName}" eliminado exitosamente`;
+        
+        // Cerrar el modal antes de recargar
         this.showDeleteModal = false;
+        const deletedUser = this.userToDelete;
         this.userToDelete = null;
         
-        // Recargar la lista de usuarios
+        // Recargar la lista de usuarios después de un breve delay
+        console.log('🔄 Recargando lista de usuarios...');
+        await new Promise(resolve => setTimeout(resolve, 300));
         await this.loadUsers();
+        
+        // Verificar que el usuario fue eliminado de la lista
+        const userStillExists = this.users.find(u => u.id === deletedUser.id);
+        if (userStillExists) {
+          console.warn('⚠️ El usuario aún aparece en la lista, recargando nuevamente...');
+          await new Promise(resolve => setTimeout(resolve, 500));
+          await this.loadUsers();
+        }
         
         // Limpiar mensaje después de 5 segundos
         setTimeout(() => {
@@ -571,12 +599,36 @@ export default {
         }, 5000);
       } catch (error) {
         console.error('❌ Error al eliminar usuario:', error);
-        this.error = error.message || 'Error al eliminar usuario';
         
-        // Mantener el modal abierto para que el usuario vea el error
-        // No cerrar el modal en caso de error
+        // Proporcionar mensajes de error más específicos
+        let errorMessage = error.message || 'Error al eliminar usuario';
+        
+        if (error.message && error.message.includes('Timeout')) {
+          errorMessage = 'La eliminación tardó demasiado tiempo. El usuario puede haber sido eliminado. Por favor, recarga la página.';
+          // Cerrar el modal y recargar la lista
+          this.showDeleteModal = false;
+          this.userToDelete = null;
+          await this.loadUsers();
+        } else if (error.message && error.message.includes('permisos')) {
+          errorMessage = error.message + '\n\nVerifica que tengas el rol de administrador y que las políticas RLS estén configuradas correctamente.';
+        } else if (error.message && error.message.includes('RLS')) {
+          errorMessage = error.message + '\n\nEjecuta el script fix-rls-definitive.sql en el SQL Editor de Supabase para corregir las políticas RLS.';
+        }
+        
+        this.error = errorMessage;
+        
+        // Mantener el modal abierto solo si no es un error de timeout
+        if (!error.message || !error.message.includes('Timeout')) {
+          // Mantener el modal abierto para que el usuario vea el error
+        } else {
+          // Cerrar el modal si es timeout (puede que el usuario haya sido eliminado)
+          this.showDeleteModal = false;
+          this.userToDelete = null;
+        }
       } finally {
+        // Asegurar que el loading se detenga siempre
         this.loading = false;
+        console.log('✅ Loading detenido en deleteUser');
       }
     },
 

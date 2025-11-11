@@ -511,39 +511,104 @@ class UserService {
     try {
       console.log('🗑️ Eliminando usuario:', userId);
       
+      // Verificar que hay una sesión activa
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      
+      if (sessionError || !session) {
+        throw new Error('No hay sesión activa. Por favor, inicia sesión nuevamente.');
+      }
+
+      // Verificar que el usuario no se esté eliminando a sí mismo
+      if (session.user.id === userId) {
+        throw new Error('No puedes eliminarte a ti mismo. Por favor, usa otra cuenta de administrador.');
+      }
+
+      // Primero, obtener el email del usuario antes de eliminarlo (para logging)
+      let userEmail = null;
+      try {
+        const { data: userData, error: fetchError } = await supabase
+          .from('users')
+          .select('email, nombre')
+          .eq('id', userId)
+          .maybeSingle();
+        
+        if (userData) {
+          userEmail = userData.email;
+          console.log('📧 Eliminando usuario:', userEmail || userId);
+        } else if (fetchError) {
+          console.warn('⚠️ No se pudo obtener información del usuario antes de eliminarlo:', fetchError);
+        }
+      } catch (fetchError) {
+        console.warn('⚠️ Error al obtener información del usuario:', fetchError);
+        // Continuar con la eliminación de todas formas
+      }
+
       // Eliminar de la tabla users
-      // Nota: El CASCADE en la tabla users eliminará automáticamente el usuario de auth.users
-      const { error } = await supabase
+      // IMPORTANTE: Necesitamos que haya un trigger en Supabase que elimine de auth.users
+      // cuando se elimine de la tabla users, o usar una función Edge Function
+      console.log('🔄 Eliminando usuario de la tabla users...');
+      const { error: deleteError } = await supabase
         .from('users')
         .delete()
         .eq('id', userId);
 
-      if (error) {
-        console.error('❌ Error al eliminar usuario:', error);
+      if (deleteError) {
+        console.error('❌ Error al eliminar usuario de la tabla users:', deleteError);
         
         // Proporcionar mensajes de error más específicos
-        if (error.code === 'PGRST301' || error.message.includes('permission denied')) {
+        if (deleteError.code === 'PGRST301' || deleteError.message.includes('permission denied')) {
           throw new Error('No tienes permisos para eliminar usuarios. Verifica que tengas el rol de administrador.');
-        } else if (error.code === 'PGRST116') {
-          throw new Error('Usuario no encontrado');
-        } else if (error.message.includes('RLS')) {
-          throw new Error('Error de permisos. Verifica que las políticas RLS estén configuradas correctamente.');
-        } else if (error.message.includes('foreign key') || error.message.includes('constraint')) {
-          throw new Error('No se puede eliminar el usuario porque tiene datos relacionados');
+        } else if (deleteError.code === 'PGRST116') {
+          throw new Error('Usuario no encontrado en la base de datos');
+        } else if (deleteError.message.includes('RLS')) {
+          throw new Error('Error de permisos RLS. Verifica que las políticas RLS estén configuradas correctamente en Supabase.');
+        } else if (deleteError.message.includes('foreign key') || deleteError.message.includes('constraint')) {
+          throw new Error('No se puede eliminar el usuario porque tiene datos relacionados en otras tablas.');
+        } else if (deleteError.message.includes('violates row-level security')) {
+          throw new Error('Error de permisos. Verifica que tengas el rol de administrador y que las políticas RLS permitan la eliminación.');
         }
         
-        throw new Error(`Error al eliminar usuario: ${error.message}`);
+        throw new Error(`Error al eliminar usuario: ${deleteError.message}`);
       }
 
-      console.log('✅ Usuario eliminado:', userId);
-      // Nota: Para eliminar completamente de auth.users, necesitaríamos permisos de administrador
-      // o una función Edge Function. Por ahora, el CASCADE debería manejarlo.
+      console.log('✅ Usuario eliminado de la tabla users:', userId);
+      
+      // IMPORTANTE: Para eliminar completamente de auth.users, necesitarías:
+      // 1. Una función Edge Function en Supabase que use el Admin API
+      // 2. O configurar un trigger en PostgreSQL que llame a una función que elimine de auth.users
+      // 3. O usar el servicio de administración de Supabase (requiere service_role key)
+      // 
+      // Por ahora, eliminamos solo de la tabla users. El usuario no podrá iniciar sesión
+      // porque no existe en la tabla users (las políticas RLS lo verifican).
+      // 
+      // Si necesitas eliminación completa, crea una función Edge Function en Supabase:
+      // 
+      // import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
+      // import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+      // 
+      // serve(async (req) => {
+      //   const supabaseAdmin = createClient(
+      //     Deno.env.get('SUPABASE_URL') ?? '',
+      //     Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+      //   )
+      //   
+      //   const { userId } = await req.json()
+      //   const { error } = await supabaseAdmin.auth.admin.deleteUser(userId)
+      //   
+      //   return new Response(JSON.stringify({ error }), {
+      //     headers: { 'Content-Type': 'application/json' }
+      //   })
+      // })
+
+      return;
     } catch (error) {
-      console.error('Error en deleteUser:', error);
+      console.error('❌ Error en deleteUser:', error);
+      
       // Si el error ya tiene un mensaje personalizado, lanzarlo tal cual
       if (error.message && error instanceof Error) {
         throw error;
       }
+      
       throw new Error(error.message || 'Error al eliminar usuario. Por favor, intenta de nuevo.');
     }
   }
