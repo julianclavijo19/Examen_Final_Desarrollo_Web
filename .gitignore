@@ -31,7 +31,7 @@ dist-ssr
 *.sln
 *.sw?
 
-# Documentation files (instrucciones)
+# Documentation files (instrucciones) - Mantener solo VERCEL_SETUP.md
 COMO_ASIGNAR_ADMIN.md
 CONFIGURACION_COMPLETADA.md
 GESTION_USUARIOS.md

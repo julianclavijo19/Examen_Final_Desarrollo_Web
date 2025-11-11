@@ -18,9 +18,16 @@ export const SUPABASE_CONFIG = {
 };
 
 /**
+ * Verificar si Supabase está configurado
+ */
+export const isSupabaseConfigured = () => {
+  return !!(SUPABASE_CONFIG.url && SUPABASE_CONFIG.anonKey && SUPABASE_CONFIG.url !== '' && SUPABASE_CONFIG.anonKey !== '');
+};
+
+/**
  * Validar que las variables de entorno estén configuradas
  */
-if (!SUPABASE_CONFIG.url || !SUPABASE_CONFIG.anonKey) {
+if (!isSupabaseConfigured()) {
   console.warn(
     '⚠️ Variables de entorno de Supabase no configuradas.\n' +
     'Por favor, configura VITE_SUPABASE_URL y VITE_SUPABASE_ANON_KEY en las variables de entorno de Vercel'
