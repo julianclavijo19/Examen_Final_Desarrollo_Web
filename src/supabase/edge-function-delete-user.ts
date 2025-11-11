@@ -1,0 +1,105 @@
+// ============================================
+// EDGE FUNCTION PARA ELIMINAR USUARIO DE auth.users
+// ============================================
+// 
+// INSTRUCCIONES PARA CREAR ESTA FUNCIÓN EN SUPABASE:
+//
+// 1. Ve a Supabase Dashboard > Edge Functions
+// 2. Crea una nueva función llamada "delete-user"
+// 3. Copia y pega este código en la función
+// 4. Despliega la función
+// 5. La función estará disponible en:
+//    https://[tu-proyecto].supabase.co/functions/v1/delete-user
+//
+// ============================================
+
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+}
+
+serve(async (req) => {
+  // Handle CORS preflight requests
+  if (req.method === 'OPTIONS') {
+    return new Response('ok', { headers: corsHeaders })
+  }
+
+  try {
+    // Crear cliente de Supabase con service_role key
+    // NOTA: El service_role key solo debe usarse en Edge Functions, nunca en el cliente
+    const supabaseAdmin = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
+      {
+        auth: {
+          autoRefreshToken: false,
+          persistSession: false
+        }
+      }
+    )
+
+    // Obtener el token de autorización del request
+    const authHeader = req.headers.get('Authorization')
+    if (!authHeader) {
+      throw new Error('No authorization header')
+    }
+
+    // Verificar que el usuario autenticado es administrador
+    const token = authHeader.replace('Bearer ', '')
+    const { data: { user }, error: userError } = await supabaseAdmin.auth.getUser(token)
+
+    if (userError || !user) {
+      throw new Error('Invalid token')
+    }
+
+    // Verificar que el usuario es administrador
+    const { data: userData, error: checkError } = await supabaseAdmin
+      .from('users')
+      .select('rol')
+      .eq('id', user.id)
+      .single()
+
+    if (checkError || !userData || userData.rol !== 'admin') {
+      throw new Error('Unauthorized: Only administrators can delete users')
+    }
+
+    // Obtener el userId del body
+    const { userId } = await req.json()
+
+    if (!userId) {
+      throw new Error('userId is required')
+    }
+
+    // Verificar que el usuario no se está eliminando a sí mismo
+    if (userId === user.id) {
+      throw new Error('Cannot delete yourself')
+    }
+
+    // Eliminar de auth.users usando Admin API
+    const { error: deleteError } = await supabaseAdmin.auth.admin.deleteUser(userId)
+
+    if (deleteError) {
+      throw deleteError
+    }
+
+    return new Response(
+      JSON.stringify({ success: true, message: 'User deleted from auth.users' }),
+      {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 200,
+      }
+    )
+  } catch (error) {
+    return new Response(
+      JSON.stringify({ error: error.message }),
+      {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 400,
+      }
+    )
+  }
+})
+

@@ -342,6 +342,41 @@ class UserService {
 
       console.log('✅ Usuario creado exitosamente:', userRecord);
 
+      // Verificar que la sesión del administrador sigue activa
+      // Esto es importante porque signUp() puede haber cambiado la sesión
+      const { data: { session: finalSession } } = await supabase.auth.getSession();
+      
+      if (!finalSession || finalSession.user.id !== currentUserId) {
+        console.warn('⚠️ La sesión cambió después de crear el usuario, restaurando...');
+        try {
+          const { error: finalRestoreError } = await supabase.auth.setSession({
+            access_token: currentUserAccessToken,
+            refresh_token: currentUserRefreshToken
+          });
+          
+          if (finalRestoreError) {
+            console.error('❌ Error al restaurar sesión final:', finalRestoreError);
+            // Intentar método alternativo
+            try {
+              await supabase.auth.signOut();
+              await new Promise(resolve => setTimeout(resolve, 200));
+              await supabase.auth.setSession({
+                access_token: currentUserAccessToken,
+                refresh_token: currentUserRefreshToken
+              });
+            } catch (altFinalError) {
+              console.error('❌ Error en método alternativo final:', altFinalError);
+            }
+          } else {
+            console.log('✅ Sesión del administrador restaurada correctamente (verificación final)');
+          }
+        } catch (restoreFinalError) {
+          console.error('❌ Error al verificar/restaurar sesión final:', restoreFinalError);
+        }
+      } else {
+        console.log('✅ Verificación: Sesión del administrador sigue activa');
+      }
+
       // Nota: El email del usuario se confirmará automáticamente si está configurado
       // en Supabase (auto-confirm habilitado). Si no, el usuario necesitará confirmar
       // su email manualmente mediante el enlace enviado por Supabase.
