@@ -31,15 +31,9 @@ dist-ssr
 *.sln
 *.sw?
 
-# Documentation files (instrucciones) - Mantener solo VERCEL_SETUP.md
-COMO_ASIGNAR_ADMIN.md
-CONFIGURACION_COMPLETADA.md
-GESTION_USUARIOS.md
-SOLUCION_ERROR_SQL.md
-SUPABASE_SETUP.md
-src/supabase/INSTRUCCIONES.md
-src/supabase/SETUP.md
-src/supabase/README.md
+# Documentation files
+VERIFICACION_REQUERIMIENTOS.md
+
 
 # Temporary files and scripts
 *.sh

@@ -2,5 +2,6 @@
  * Exportar todos los servicios
  */
 export { default as authService } from './authService';
-export * from './api';
+export { default as userService } from './userService';
+export { default as productService } from './productService';
 

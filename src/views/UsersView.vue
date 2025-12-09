@@ -1,12 +1,24 @@
 <template>
   <div class="users-management">
+    <!-- Navegación Simple -->
+    <div class="simple-nav">
+      <router-link to="/productos" class="nav-link">
+        <i class="bi bi-box-seam"></i> Productos
+      </router-link>
+      <router-link to="/usuarios" class="nav-link active">
+        <i class="bi bi-people"></i> Usuarios
+      </router-link>
+      <button @click="handleLogout" class="nav-link logout-link">
+        <i class="bi bi-box-arrow-right"></i> Cerrar Sesión
+      </button>
+    </div>
+
     <div class="page-header">
       <div>
         <h1>Gestión de Usuarios</h1>
         <p class="page-subtitle">Administra los usuarios del sistema</p>
       </div>
       <button 
-        v-if="isAdmin"
         class="btn-primary"
         @click="showCreateModal = true"
       >
@@ -41,17 +53,11 @@
       <div v-if="loading" class="loading-state">
         <div class="spinner"></div>
         <p>Cargando usuarios...</p>
-        <p style="margin-top: 10px; font-size: 0.9em; color: #666;">
-          Si se queda cargando, ejecuta el script fix-rls-policies-complete.sql en Supabase
-        </p>
       </div>
 
       <div v-else-if="users.length === 0 && !error" class="empty-state">
         <i class="bi bi-people"></i>
         <p>No hay usuarios registrados</p>
-        <p style="margin-top: 10px; font-size: 0.9em; color: #666;">
-          Si esperabas ver usuarios, verifica las políticas RLS en Supabase
-        </p>
       </div>
 
       <table v-else class="users-table">
@@ -59,10 +65,7 @@
           <tr>
             <th>Nombre</th>
             <th>Email</th>
-            <th>Username</th>
-            <th>Rol</th>
-            <th>Fecha de Creación</th>
-            <th v-if="isAdmin" class="col-actions">Acciones</th>
+            <th class="col-actions">Acciones</th>
           </tr>
         </thead>
         <tbody>
@@ -72,18 +75,11 @@
                 <div class="user-avatar">
                   <i class="bi bi-person-circle"></i>
                 </div>
-                <span class="user-name">{{ user.nombre }}</span>
+                <span class="user-name">{{ user.name }}</span>
               </div>
             </td>
             <td>{{ user.email }}</td>
-            <td>{{ user.username }}</td>
-            <td>
-              <span class="badge" :class="`badge-${user.rol}`">
-                {{ getRolLabel(user.rol) }}
-              </span>
-            </td>
-            <td>{{ formatDate(user.created_at) }}</td>
-            <td v-if="isAdmin" class="col-actions">
+            <td class="col-actions">
               <div class="actions-cell">
                 <button 
                   class="action-btn edit" 
@@ -96,7 +92,6 @@
                   class="action-btn delete" 
                   @click="confirmDelete(user)"
                   title="Eliminar"
-                  :disabled="user.id === currentUser?.id"
                 >
                   <i class="bi bi-trash"></i>
                 </button>
@@ -125,24 +120,10 @@
             </label>
             <input
               type="text"
-              v-model="formData.nombre"
+              v-model="formData.name"
               placeholder="Juan Pérez"
               required
               :disabled="loading"
-            >
-          </div>
-
-          <div class="form-group">
-            <label>
-              Username
-              <span class="required">*</span>
-            </label>
-            <input
-              type="text"
-              v-model="formData.username"
-              placeholder="juanperez"
-              required
-              :disabled="loading || showEditModal"
             >
           </div>
 
@@ -184,29 +165,6 @@
               </button>
             </div>
             <small class="form-hint">Mínimo 6 caracteres</small>
-          </div>
-
-          <div class="form-group">
-            <label>
-              Rol
-              <span class="required">*</span>
-            </label>
-            <select 
-              v-model="formData.rol" 
-              required
-              :disabled="loading"
-            >
-              <option value="usuario">Usuario</option>
-              <option value="vendedor">Vendedor</option>
-              <option value="admin">Administrador</option>
-            </select>
-            <small class="form-hint">
-              <strong>Usuario:</strong> Solo lectura
-              <br>
-              <strong>Vendedor:</strong> Puede gestionar productos
-              <br>
-              <strong>Administrador:</strong> Acceso completo
-            </small>
           </div>
 
           <div class="modal-actions">
@@ -282,6 +240,10 @@ import userService from '../services/userService';
 import authService from '../services/authService';
 import { isValidEmail } from '../utils/validators';
 
+/**
+ * Vista de gestión de usuarios
+ * Implementa CRUD completo con modales Bootstrap y validaciones
+ */
 export default {
   name: 'UsersView',
   data() {
@@ -297,41 +259,31 @@ export default {
       showPassword: false,
       userToDelete: null,
       formData: {
-        nombre: '',
-        username: '',
+        name: '',
         email: '',
-        password: '',
-        rol: 'usuario'
+        password: ''
       }
     };
   },
   computed: {
-    isAdmin() {
-      return this.currentUser && this.currentUser.rol === 'admin';
-    },
     isFormValid() {
       if (this.showEditModal) {
-        return this.formData.nombre && 
-               this.formData.username && 
+        return this.formData.name && 
                this.formData.email && 
-               isValidEmail(this.formData.email) &&
-               this.formData.rol;
+               isValidEmail(this.formData.email);
       } else {
-        return this.formData.nombre && 
-               this.formData.username && 
+        return this.formData.name && 
                this.formData.email && 
                isValidEmail(this.formData.email) &&
                this.formData.password && 
-               this.formData.password.length >= 6 &&
-               this.formData.rol;
+               this.formData.password.length >= 6;
       }
     }
   },
   async mounted() {
-    // Verificar que el usuario sea administrador
+    // Obtener usuario actual
     try {
-      console.log('🔍 Verificando permisos de administrador...');
-      this.currentUser = await authService.getCurrentUserAsync() || authService.getCurrentUser();
+      this.currentUser = authService.getCurrentUser();
       
       if (!this.currentUser) {
         console.error('❌ No se pudo obtener el usuario actual');
@@ -340,24 +292,12 @@ export default {
       }
       
       console.log('✅ Usuario actual:', this.currentUser);
-      console.log('📋 Rol del usuario:', this.currentUser.rol);
-      
-      if (!this.isAdmin) {
-        console.warn('⚠️ El usuario no es administrador, redirigiendo al dashboard');
-        this.error = 'No tienes permisos para acceder a esta sección. Se requiere rol de administrador.';
-        setTimeout(() => {
-          this.$router.push('/dashboard');
-        }, 2000);
-        return;
-      }
-
-      console.log('✅ Permisos de administrador verificados');
       await this.loadUsers();
     } catch (error) {
-      console.error('❌ Error al verificar permisos:', error);
-      this.error = 'Error al verificar permisos de administrador. Por favor, inicia sesión nuevamente.';
+      console.error('❌ Error al cargar usuarios:', error);
+      this.error = 'Error al cargar usuarios. Por favor, inicia sesión nuevamente.';
       setTimeout(() => {
-        this.$router.push('/dashboard');
+        this.$router.push('/login');
       }, 2000);
     }
   },
@@ -374,22 +314,11 @@ export default {
         
         if (this.users.length === 0) {
           console.log('⚠️ No hay usuarios en la base de datos o no se pudieron cargar');
-          this.error = 'No se encontraron usuarios. Verifica que las políticas RLS estén configuradas correctamente en Supabase.';
+          this.error = 'No se encontraron usuarios.';
         }
       } catch (error) {
         console.error('❌ Error al cargar usuarios:', error);
         this.error = error.message || 'Error al cargar usuarios';
-        
-        // Proporcionar mensajes más específicos y útiles
-        if (error.message && error.message.includes('permisos')) {
-          this.error += '\n\nSolución: Ejecuta el script fix-rls-policies-complete.sql en el SQL Editor de Supabase.';
-        } else if (error.message && error.message.includes('Timeout')) {
-          this.error += '\n\nPosibles causas:\n1. Problemas de conexión a Supabase\n2. Políticas RLS mal configuradas\n3. La función is_admin() no funciona correctamente\n\nSolución: Ejecuta el script fix-rls-policies-complete.sql en el SQL Editor de Supabase.';
-        } else if (error.message && error.message.includes('RLS')) {
-          this.error += '\n\nSolución: Ejecuta el script fix-rls-policies-complete.sql en el SQL Editor de Supabase para corregir las políticas RLS.';
-        }
-        
-        // Establecer lista vacía para evitar errores en el template
         this.users = [];
       } finally {
         // Asegurar que el loading se detenga siempre
@@ -477,9 +406,7 @@ export default {
         } else if (error.message && error.message.includes('Ya existe')) {
           errorMessage = error.message;
         } else if (error.message && error.message.includes('permisos')) {
-          errorMessage = error.message + '\n\nVerifica que tengas el rol de administrador y que las políticas RLS estén configuradas correctamente.';
-        } else if (error.message && error.message.includes('RLS')) {
-          errorMessage = error.message + '\n\nEjecuta el script fix-rls-definitive.sql en el SQL Editor de Supabase para corregir las políticas RLS.';
+          errorMessage = error.message + '\n\nVerifica que tengas el rol de administrador.';
         }
         
         this.error = errorMessage;
@@ -500,11 +427,9 @@ export default {
 
     editUser(user) {
       this.formData = {
-        nombre: user.nombre,
-        username: user.username,
+        name: user.name,
         email: user.email,
-        password: '',
-        rol: user.rol
+        password: ''
       };
       this.userToDelete = user;
       this.showEditModal = true;
@@ -633,9 +558,7 @@ export default {
           this.userToDelete = null;
           await this.loadUsers();
         } else if (error.message && error.message.includes('permisos')) {
-          errorMessage = error.message + '\n\nVerifica que tengas el rol de administrador y que las políticas RLS estén configuradas correctamente.';
-        } else if (error.message && error.message.includes('RLS')) {
-          errorMessage = error.message + '\n\nEjecuta el script fix-rls-definitive.sql en el SQL Editor de Supabase para corregir las políticas RLS.';
+          errorMessage = error.message + '\n\nVerifica que tengas el rol de administrador.';
         }
         
         this.error = errorMessage;
@@ -659,24 +582,13 @@ export default {
       this.showCreateModal = false;
       this.showEditModal = false;
       this.formData = {
-        nombre: '',
-        username: '',
+        name: '',
         email: '',
-        password: '',
-        rol: 'usuario'
+        password: ''
       };
       this.userToDelete = null;
       this.error = null;
       this.showPassword = false;
-    },
-
-    getRolLabel(rol) {
-      const labels = {
-        admin: 'Administrador',
-        vendedor: 'Vendedor',
-        usuario: 'Usuario'
-      };
-      return labels[rol] || rol;
     },
 
     formatDate(dateString) {
@@ -687,541 +599,15 @@ export default {
         month: 'short',
         day: 'numeric'
       });
+    },
+
+    handleLogout() {
+      authService.logout();
+      this.$router.push('/login');
     }
   }
 };
 </script>
 
-<style scoped>
-.users-management {
-  padding: 2rem;
-  max-width: 1400px;
-  margin: 0 auto;
-}
-
-.page-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  margin-bottom: 2rem;
-  gap: 1rem;
-}
-
-.page-header h1 {
-  color: #212529;
-  font-size: 1.75rem;
-  font-weight: 700;
-  margin: 0 0 0.5rem 0;
-}
-
-.page-subtitle {
-  color: #6c757d;
-  font-size: 0.9375rem;
-  margin: 0;
-}
-
-.btn-primary {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: #ffffff;
-  border: none;
-  border-radius: 10px;
-  padding: 0.75rem 1.5rem;
-  font-size: 0.9375rem;
-  font-weight: 600;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  transition: all 0.3s ease;
-  box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
-}
-
-.btn-primary:hover:not(:disabled) {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
-}
-
-.btn-primary:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-
-/* Alertas */
-.alert {
-  padding: 1rem 1.25rem;
-  border-radius: 10px;
-  margin-bottom: 1.5rem;
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  font-size: 0.875rem;
-  animation: slideDown 0.3s ease-out;
-}
-
-.alert-error {
-  background: #fee2e2;
-  border: 1px solid #fca5a5;
-  color: #991b1b;
-}
-
-.alert-success {
-  background: #d1fae5;
-  border: 1px solid #86efac;
-  color: #065f46;
-}
-
-.alert-close {
-  margin-left: auto;
-  background: transparent;
-  border: none;
-  color: inherit;
-  cursor: pointer;
-  padding: 0.25rem;
-  opacity: 0.7;
-  transition: opacity 0.2s;
-}
-
-.alert-close:hover {
-  opacity: 1;
-}
-
-.fade-enter-active, .fade-leave-active {
-  transition: opacity 0.3s ease;
-}
-
-.fade-enter-from, .fade-leave-to {
-  opacity: 0;
-}
-
-@keyframes slideDown {
-  from {
-    opacity: 0;
-    transform: translateY(-10px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-/* Tabla */
-.table-container {
-  background: #ffffff;
-  border-radius: 12px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-  overflow: hidden;
-}
-
-.loading-state,
-.empty-state {
-  padding: 3rem;
-  text-align: center;
-  color: #6c757d;
-}
-
-.loading-state .spinner {
-  width: 40px;
-  height: 40px;
-  border: 4px solid #e9ecef;
-  border-top-color: #667eea;
-  border-radius: 50%;
-  animation: spin 0.6s linear infinite;
-  margin: 0 auto 1rem;
-}
-
-@keyframes spin {
-  to { transform: rotate(360deg); }
-}
-
-.empty-state i {
-  font-size: 3rem;
-  color: #adb5bd;
-  margin-bottom: 1rem;
-}
-
-.users-table {
-  width: 100%;
-  border-collapse: collapse;
-}
-
-.users-table thead {
-  background: #f8f9fa;
-  border-bottom: 2px solid #e9ecef;
-}
-
-.users-table th {
-  padding: 1rem;
-  text-align: left;
-  font-weight: 600;
-  color: #495057;
-  font-size: 0.875rem;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-
-.users-table td {
-  padding: 1rem;
-  border-bottom: 1px solid #e9ecef;
-  color: #212529;
-}
-
-.users-table tbody tr:hover {
-  background: #f8f9fa;
-}
-
-.user-info {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-}
-
-.user-avatar {
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  background: #eef2ff;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: #667eea;
-  font-size: 1.5rem;
-}
-
-.user-name {
-  font-weight: 500;
-  color: #212529;
-}
-
-.badge {
-  display: inline-block;
-  padding: 0.375rem 0.75rem;
-  border-radius: 6px;
-  font-size: 0.8125rem;
-  font-weight: 600;
-  text-transform: capitalize;
-}
-
-.badge-admin {
-  background: #fef3c7;
-  color: #92400e;
-}
-
-.badge-vendedor {
-  background: #dbeafe;
-  color: #1e40af;
-}
-
-.badge-usuario {
-  background: #e9ecef;
-  color: #495057;
-}
-
-.col-actions {
-  width: 120px;
-  text-align: center;
-}
-
-.actions-cell {
-  display: flex;
-  justify-content: center;
-  gap: 0.5rem;
-}
-
-.action-btn {
-  width: 32px;
-  height: 32px;
-  border: none;
-  border-radius: 6px;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: all 0.2s;
-  font-size: 0.875rem;
-}
-
-.action-btn.edit {
-  background: #eef2ff;
-  color: #667eea;
-}
-
-.action-btn.edit:hover:not(:disabled) {
-  background: #667eea;
-  color: #ffffff;
-}
-
-.action-btn.delete {
-  background: #fee2e2;
-  color: #ef4444;
-}
-
-.action-btn.delete:hover:not(:disabled) {
-  background: #ef4444;
-  color: #ffffff;
-}
-
-.action-btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-/* Modal */
-.modal-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.5);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1000;
-  padding: 1rem;
-  animation: fadeIn 0.3s ease;
-}
-
-@keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
-}
-
-.modal-content {
-  background: #ffffff;
-  border-radius: 16px;
-  width: 100%;
-  max-width: 500px;
-  max-height: 90vh;
-  overflow-y: auto;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-  animation: slideUp 0.3s ease;
-}
-
-@keyframes slideUp {
-  from {
-    opacity: 0;
-    transform: translateY(30px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-.modal-header {
-  padding: 1.5rem;
-  border-bottom: 1px solid #e9ecef;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.modal-header h2 {
-  margin: 0;
-  font-size: 1.5rem;
-  font-weight: 600;
-  color: #212529;
-}
-
-.modal-close {
-  background: transparent;
-  border: none;
-  font-size: 1.5rem;
-  color: #6c757d;
-  cursor: pointer;
-  padding: 0.25rem;
-  transition: color 0.2s;
-}
-
-.modal-close:hover {
-  color: #212529;
-}
-
-.modal-form {
-  padding: 1.5rem;
-}
-
-.modal-body {
-  padding: 1.5rem;
-}
-
-.form-group {
-  margin-bottom: 1.5rem;
-}
-
-.form-group label {
-  display: block;
-  margin-bottom: 0.5rem;
-  font-weight: 600;
-  color: #495057;
-  font-size: 0.875rem;
-}
-
-.required {
-  color: #ef4444;
-}
-
-.form-group input,
-.form-group select {
-  width: 100%;
-  padding: 0.875rem;
-  border: 2px solid #e9ecef;
-  border-radius: 8px;
-  font-size: 0.9375rem;
-  transition: all 0.3s ease;
-}
-
-.form-group input:focus,
-.form-group select:focus {
-  outline: none;
-  border-color: #667eea;
-  box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.1);
-}
-
-.form-group input:disabled,
-.form-group select:disabled {
-  background: #f8f9fa;
-  cursor: not-allowed;
-}
-
-.password-input {
-  position: relative;
-}
-
-.password-input input {
-  padding-right: 3rem;
-}
-
-.toggle-password {
-  position: absolute;
-  right: 0.75rem;
-  top: 50%;
-  transform: translateY(-50%);
-  background: transparent;
-  border: none;
-  color: #6c757d;
-  cursor: pointer;
-  padding: 0.5rem;
-}
-
-.toggle-password:hover {
-  color: #667eea;
-}
-
-.form-hint {
-  display: block;
-  margin-top: 0.5rem;
-  font-size: 0.8125rem;
-  color: #6c757d;
-  line-height: 1.5;
-}
-
-.text-warning {
-  color: #f59e0b;
-  font-weight: 600;
-}
-
-.modal-actions {
-  display: flex;
-  gap: 1rem;
-  justify-content: flex-end;
-  padding-top: 1rem;
-  border-top: 1px solid #e9ecef;
-}
-
-.btn-secondary {
-  background: #f8f9fa;
-  color: #495057;
-  border: 2px solid #e9ecef;
-  border-radius: 8px;
-  padding: 0.75rem 1.5rem;
-  font-size: 0.9375rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.3s ease;
-}
-
-.btn-secondary:hover:not(:disabled) {
-  background: #e9ecef;
-  border-color: #dee2e6;
-}
-
-.btn-secondary:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-
-.btn-danger {
-  background: #ef4444;
-  color: #ffffff;
-  border: none;
-  border-radius: 8px;
-  padding: 0.75rem 1.5rem;
-  font-size: 0.9375rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-
-.btn-danger:hover:not(:disabled) {
-  background: #dc2626;
-}
-
-.btn-danger:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-
-.button-content {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-
-.spinner-small {
-  width: 14px;
-  height: 14px;
-  border: 2px solid rgba(255, 255, 255, 0.3);
-  border-top-color: #ffffff;
-  border-radius: 50%;
-  animation: spin 0.6s linear infinite;
-}
-
-.modal-confirm {
-  max-width: 400px;
-}
-
-/* Responsive */
-@media (max-width: 768px) {
-  .users-management {
-    padding: 1rem;
-  }
-
-  .page-header {
-    flex-direction: column;
-    align-items: stretch;
-  }
-
-  .btn-primary {
-    width: 100%;
-    justify-content: center;
-  }
-
-  .users-table {
-    font-size: 0.875rem;
-  }
-
-  .users-table th,
-  .users-table td {
-    padding: 0.75rem 0.5rem;
-  }
-
-  .modal-content {
-    max-width: 100%;
-  }
-}
-</style>
+<style scoped src="../styles/users.css" />
 

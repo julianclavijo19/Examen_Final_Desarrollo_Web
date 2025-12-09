@@ -1,7 +1,7 @@
 {
-  "name": "techstore-pro",
+  "name": "examen-final-desarrollo-web",
   "version": "1.0.0",
-  "description": "Dashboard modular para TechStore Pro - Tienda de Tecnología y Electrónica",
+  "description": "Examen Final - Aplicación web con Vue.js, Bootstrap 5 y MockAPI",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -9,14 +9,11 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@supabase/supabase-js": "^2.81.0",
-    "apexcharts": "^5.3.6",
     "axios": "^1.6.8",
     "bootstrap": "^5.3.3",
     "bootstrap-icons": "^1.11.3",
     "vue": "^3.4.21",
-    "vue-router": "^4.3.0",
-    "vue3-apexcharts": "^1.10.0"
+    "vue-router": "^4.3.0"
   },
   "devDependencies": {
     "@vitejs/plugin-vue": "^5.0.4",
