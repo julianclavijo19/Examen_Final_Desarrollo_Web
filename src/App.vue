@@ -1,12 +1,34 @@
 <template>
   <div id="app">
-    <router-view></router-view>
+    <NavbarComponent v-if="!isLoginPage" />
+    <div class="app-layout" v-if="!isLoginPage">
+      <SidebarComponent />
+      <main class="main-content">
+        <router-view></router-view>
+      </main>
+    </div>
+    <router-view v-else></router-view>
+    <FooterComponent v-if="!isLoginPage" />
   </div>
 </template>
 
 <script>
+import NavbarComponent from './components/NavbarComponent.vue';
+import SidebarComponent from './components/SidebarComponent.vue';
+import FooterComponent from './components/FooterComponent.vue';
+
 export default {
-  name: 'App'
+  name: 'App',
+  components: {
+    NavbarComponent,
+    SidebarComponent,
+    FooterComponent
+  },
+  computed: {
+    isLoginPage() {
+      return this.$route.path === '/login';
+    }
+  }
 }
 </script>
 
@@ -34,6 +56,18 @@ body {
 
 #app {
   min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.app-layout {
+  display: flex;
+  flex: 1;
+}
+
+.main-content {
+  flex: 1;
+  background: #f9fafb;
 }
 
 a {

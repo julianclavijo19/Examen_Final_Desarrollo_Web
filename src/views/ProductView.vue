@@ -1,18 +1,5 @@
 <template>
   <div class="products-management">
-    <!-- Navegación Simple -->
-    <div class="simple-nav">
-      <router-link to="/productos" class="nav-link active">
-        <i class="bi bi-box-seam"></i> Productos
-      </router-link>
-      <router-link to="/usuarios" class="nav-link">
-        <i class="bi bi-people"></i> Usuarios
-      </router-link>
-      <button @click="handleLogout" class="nav-link logout-link">
-        <i class="bi bi-box-arrow-right"></i> Cerrar Sesión
-      </button>
-    </div>
-
     <div class="page-header">
       <h1>Productos</h1>
       <button class="btn-primary" @click="showCreateModal">

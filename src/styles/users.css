@@ -1,51 +1,6 @@
-.simple-nav {
-  display: flex;
-  gap: 1rem;
-  padding: 1rem;
-  background: white;
-  border-bottom: 1px solid #e5e7eb;
-  margin-bottom: 2rem;
-}
-
-.nav-link {
-  padding: 0.5rem 1rem;
-  border-radius: 0.5rem;
-  color: #6b7280;
-  text-decoration: none;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  transition: all 0.2s;
-  border: none;
-  background: transparent;
-  cursor: pointer;
-  font-size: 0.95rem;
-}
-
-.nav-link:hover {
-  background: #f3f4f6;
-  color: #111827;
-}
-
-.nav-link.active {
-  background: #6366f1;
-  color: white;
-}
-
-.logout-link {
-  margin-left: auto;
-  color: #dc2626;
-}
-
-.logout-link:hover {
-  background: #fee2e2;
-  color: #b91c1c;
-}
-
 .users-management {
   padding: 2rem;
-  max-width: 1400px;
-  margin: 0 auto;
+  max-width: 100%;
 }
 
 .page-header {
